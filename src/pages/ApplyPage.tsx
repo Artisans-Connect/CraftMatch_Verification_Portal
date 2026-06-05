@@ -3,8 +3,8 @@ import { ArrowRight, ArrowLeft, Plus, Trash2, CheckCircle, User, Briefcase, File
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { FileUpload } from '../components/ui/FileUpload';
-import { supabase } from '../lib/supabase';
 import { TRADE_CATEGORIES, GHANA_REGIONS } from '../lib/constants';
+import { apiPost } from '../lib/api';
 import type { PersonalInfoData, ProfessionalInfoData, ReferenceData, ApplicationFormData } from '../types';
 
 interface ApplyPageProps {
@@ -50,26 +50,19 @@ function computeFraudIndicators(form: ApplicationFormData): string[] {
   return indicators;
 }
 
-async function uploadDocumentFile(
-  file: File,
-  workerId: string,
-  verificationId: string,
-  docType: string,
-): Promise<{ url: string; path: string; name: string; size: number; mimeType: string }> {
-  const ext = file.name.split('.').pop() || 'bin';
-  const path = `${workerId}/${verificationId}/${docType}-${Date.now()}.${ext}`;
-  const { error: uploadError } = await supabase.storage
-    .from('verification-docs')
-    .upload(path, file, { upsert: true });
-  if (uploadError) throw uploadError;
-  const { data: urlData } = supabase.storage.from('verification-docs').getPublicUrl(path);
-  return { url: urlData.publicUrl, path, name: file.name, size: file.size, mimeType: file.type };
+async function toBase64(file: File): Promise<string> {
+  const reader = new FileReader();
+  const result = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(String(reader.result ?? '').split(',')[1] ?? '');
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+  return result;
 }
 
-export function ApplyPage({ onNavigate, handoffContext }: ApplyPageProps) {
+export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPageProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<ApplicationFormData>(emptyForm);
-  const [workerId, setWorkerId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -80,8 +73,6 @@ export function ApplyPage({ onNavigate, handoffContext }: ApplyPageProps) {
     if (!handoffContext) return;
     const profile = handoffContext.profile as Record<string, unknown> | null;
     const worker = handoffContext.worker as Record<string, unknown> | null;
-    const resolvedWorkerId = (worker?.id || profile?.id || '').toString();
-    if (resolvedWorkerId) setWorkerId(resolvedWorkerId);
     setForm(prev => ({
       ...prev,
       personal: {
@@ -156,18 +147,18 @@ export function ApplyPage({ onNavigate, handoffContext }: ApplyPageProps) {
       setErrors({ terms: 'You must confirm the information is accurate.' });
       return;
     }
-    if (!workerId) {
-      setErrors({ submit: 'Open verification from your worker profile or sign in before submitting.' });
+    if (!handoffCode) {
+      setErrors({ submit: 'Open verification from your worker profile before submitting.' });
       return;
     }
     setSubmitting(true);
     setUploadProgress('Creating application...');
     try {
-      const { data, error } = await supabase
-        .from('worker_verifications')
-        .insert({
-          status: 'pending',
-          worker_id: workerId,
+      const refs = form.references.filter(r => r.reference_name && r.phone_number);
+      const application = await apiPost<{ id: string; application_number: string }>(
+        '/verification/me/application',
+        {
+          handoff_code: handoffCode,
           verification_level: 'identity',
           full_name: form.personal.full_name,
           phone_number: form.personal.phone_number,
@@ -181,61 +172,39 @@ export function ApplyPage({ onNavigate, handoffContext }: ApplyPageProps) {
           current_city: form.professional.current_city,
           confidence_score: computeConfidenceScore(form),
           fraud_indicators: computeFraudIndicators(form),
-        })
-        .select()
-        .single();
+          references: refs,
+        },
+      );
 
-      if (error) throw error;
+      const toUpload: { file: File; type: string }[] = [];
+      if (form.documents.id_front) toUpload.push({ file: form.documents.id_front, type: 'id_front' });
+      if (form.documents.id_back) toUpload.push({ file: form.documents.id_back, type: 'id_back' });
+      if (form.documents.selfie) toUpload.push({ file: form.documents.selfie, type: 'selfie' });
+      form.documents.certifications.forEach(f => toUpload.push({ file: f, type: 'certification' }));
+      form.documents.training.forEach(f => toUpload.push({ file: f, type: 'training' }));
+      form.documents.portfolio.forEach(f => toUpload.push({ file: f, type: 'portfolio' }));
 
-      if (data) {
-        const vid = data.id;
-
-        // Upload documents and insert records
-        const toUpload: { file: File; type: string }[] = [];
-        if (form.documents.id_front) toUpload.push({ file: form.documents.id_front, type: 'id_front' });
-        if (form.documents.id_back) toUpload.push({ file: form.documents.id_back, type: 'id_back' });
-        if (form.documents.selfie) toUpload.push({ file: form.documents.selfie, type: 'selfie' });
-        form.documents.certifications.forEach(f => toUpload.push({ file: f, type: 'certification' }));
-        form.documents.training.forEach(f => toUpload.push({ file: f, type: 'training' }));
-        form.documents.portfolio.forEach(f => toUpload.push({ file: f, type: 'portfolio' }));
-
-        for (let i = 0; i < toUpload.length; i++) {
-          const { file, type } = toUpload[i];
-          setUploadProgress(`Uploading document ${i + 1} of ${toUpload.length}...`);
-          const { url, path, name, size, mimeType } = await uploadDocumentFile(file, workerId, vid, type);
-          await supabase.from('verification_documents').insert({
-            verification_id: vid,
-            worker_id: workerId,
-            document_type: type,
-            storage_path: path,
-            file_url: url,
-            file_name: name,
-            file_size: size,
-            mime_type: mimeType,
-          });
-        }
-
-        // Insert references
-        setUploadProgress('Saving references...');
-        const refs = form.references.filter(r => r.reference_name && r.phone_number);
-        if (refs.length > 0) {
-          await supabase.from('verification_references').insert(
-            refs.map(r => ({ ...r, verification_id: vid, worker_id: workerId }))
-          );
-        }
-
-        // Audit log
-        await supabase.from('verification_audit_logs').insert({
-          verification_id: vid,
-          worker_id: workerId,
-          action: 'submitted',
-          notes: 'Application submitted by worker',
+      if (toUpload.length > 0) {
+        setUploadProgress('Uploading documents...');
+        await apiPost('/verification/me/application/documents', {
+          handoff_code: handoffCode,
+          verification_id: application.id,
+          files: await Promise.all(
+            toUpload.map(async ({ file, type }) => ({
+              document_type: type,
+              file_name: file.name,
+              mime_type: file.type || 'application/octet-stream',
+              size: file.size,
+              content_base64: await toBase64(file),
+            })),
+          ),
         });
-
-        setApplicationNumber(data.application_number);
-        setSubmitted(true);
       }
-    } catch {
+
+      setApplicationNumber(application.application_number);
+      setSubmitted(true);
+    } catch (error) {
+      console.error(error);
       setErrors({ submit: 'Submission failed. Please try again.' });
     } finally {
       setSubmitting(false);
