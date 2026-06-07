@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, CheckCircle, Clock, XCircle, AlertCircle,
   FileText, Upload, ArrowRight, RefreshCw, Shield
 } from 'lucide-react';
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { supabase } from '../lib/supabase';
+import { apiGet } from '../lib/api';
 import type { WorkerVerification, VerificationStatus } from '../types';
 
 interface StatusPageProps {
@@ -27,56 +27,23 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
   const [error, setError] = useState('');
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
-  const [liveUpdate, setLiveUpdate] = useState(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Subscribe to realtime updates whenever an application is loaded
   useEffect(() => {
     if (!application) return;
-
-    // Clean up previous channel
-    if (channelRef.current) supabase.removeChannel(channelRef.current);
-
-    const channel = supabase
-      .channel(`status_page_${application.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'worker_verifications',
-          filter: `id=eq.${application.id}`,
-        },
-        (payload) => {
-          setApplication(payload.new as WorkerVerification);
-          setLastChecked(new Date());
-          setLiveUpdate(true);
-          setTimeout(() => setLiveUpdate(false), 4000);
-        }
-      )
-      .subscribe((status) => {
-        setRealtimeConnected(status === 'SUBSCRIBED');
-      });
-
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [application?.id]);
+    setRealtimeConnected(false);
+  }, [application]);
 
   const fetchApplication = async (appNum: string, phone: string) => {
-    let query = supabase.from('worker_verifications').select('*');
-    if (appNum.trim()) {
-      query = query.eq('application_number', appNum.trim().toUpperCase());
-    } else {
-      // Strip common formatting so "+233 24 123 4567" matches "+233241234567"
-      const stripped = phone.trim().replace(/[\s\-()]/g, '');
-      query = query.ilike('phone_number', `%${stripped}%`);
-    }
-    const { data } = await query.maybeSingle();
-    return data as WorkerVerification | null;
+    const params = new URLSearchParams();
+    if (appNum.trim()) params.set('application_number', appNum.trim().toUpperCase());
+    else if (phone.trim()) params.set('phone_number', phone.trim());
+
+    const data = await apiGet<WorkerVerification | null>(`/verification/applications/search?${params.toString()}`);
+    return data;
   };
 
-  const handleSearch = async () => {
-    if (!applicationNumber.trim() && !phoneNumber.trim()) {
+  const runSearch = async (appNum: string, phone: string) => {
+    if (!appNum.trim() && !phone.trim()) {
       setError('Please enter your application number or phone number.');
       return;
     }
@@ -86,7 +53,7 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
     setApplication(null);
 
     try {
-      const data = await fetchApplication(applicationNumber, phoneNumber);
+      const data = await fetchApplication(appNum, phone);
       if (data) {
         setApplication(data);
         setLastChecked(new Date());
@@ -98,6 +65,23 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
     } finally {
       setSearching(false);
     }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const appNum = params.get('application_number') || '';
+    const phone = params.get('phone_number') || '';
+    if (!appNum && !phone) return;
+
+    setApplicationNumber(appNum);
+    setPhoneNumber(phone);
+    void runSearch(appNum, phone);
+    // Run once on page entry so submitted applications can jump straight to tracking.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearch = async () => {
+    await runSearch(applicationNumber, phoneNumber);
   };
 
   const handleRefresh = async () => {
@@ -252,12 +236,6 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
             {/* Header card with refresh */}
             <div className="card p-5">
               {/* Live update flash */}
-              {liveUpdate && (
-                <div className="mb-4 flex items-center gap-2 p-3 bg-success-light border border-success/20 rounded-xl animate-fade-in">
-                  <CheckCircle size={16} className="text-success flex-shrink-0" />
-                  <p className="text-sm font-semibold text-success-dark">Your status was just updated!</p>
-                </div>
-              )}
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-xs text-text-muted font-medium uppercase tracking-wide mb-1">Application</p>
@@ -448,18 +426,21 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-text-primary mb-1">Action Required</h3>
-                    <p className="text-sm text-text-secondary mb-3">
-                      {application.more_info_message ||
-                        application.admin_notes ||
-                        'Our team needs additional documents to complete your verification.'}
-                    </p>
-                    <button
-                      onClick={() => onNavigate('apply')}
-                      className="btn-primary text-sm bg-gold-500 hover:bg-gold-600 border-0 shadow-none"
-                    >
-                      <Upload size={16} />
-                      Re-apply with Updated Documents
-                    </button>
+	                    <p className="text-sm text-text-secondary mb-3">
+	                      {application.more_info_message ||
+	                        application.admin_notes ||
+	                        'Our team needs additional documents to complete your verification.'}
+	                    </p>
+	                    <p className="text-xs text-text-muted mb-3">
+	                      For security, reopen verification from your mobile worker profile to submit the updated details.
+	                    </p>
+	                    <button
+	                      onClick={() => onNavigate('home')}
+	                      className="btn-primary text-sm bg-gold-500 hover:bg-gold-600 border-0 shadow-none"
+	                    >
+	                      <Upload size={16} />
+	                      Back to Portal Home
+	                    </button>
                   </div>
                 </div>
               </div>

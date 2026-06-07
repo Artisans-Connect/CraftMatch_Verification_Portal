@@ -1,11 +1,30 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Plus, Trash2, CheckCircle, User, Briefcase, FileImage, Award, Users, ClipboardCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  CheckCircle,
+  User,
+  Briefcase,
+  FileImage,
+  Award,
+  Users,
+  ClipboardCheck,
+  AlertCircle,
+} from 'lucide-react';
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { FileUpload } from '../components/ui/FileUpload';
 import { TRADE_CATEGORIES, GHANA_REGIONS } from '../lib/constants';
 import { apiPost } from '../lib/api';
-import type { PersonalInfoData, ProfessionalInfoData, ReferenceData, ApplicationFormData } from '../types';
+import type {
+  PersonalInfoData,
+  ProfessionalInfoData,
+  ReferenceData,
+  ApplicationFormData,
+  WorkerVerification,
+} from '../types';
 
 interface ApplyPageProps {
   onNavigate: (page: string) => void;
@@ -68,26 +87,43 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
   const [submitted, setSubmitted] = useState(false);
   const [applicationNumber, setApplicationNumber] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const existingVerification = handoffContext?.verification as WorkerVerification | null | undefined;
+  const isMoreInfoResubmission = existingVerification?.status === 'more_info_requested';
+  const isBlockedExistingApplication = Boolean(
+    existingVerification &&
+      existingVerification.status !== 'more_info_requested' &&
+      existingVerification.status !== 'rejected',
+  );
 
   useEffect(() => {
     if (!handoffContext) return;
     const profile = handoffContext.profile as Record<string, unknown> | null;
     const worker = handoffContext.worker as Record<string, unknown> | null;
+    const verification = handoffContext.verification as WorkerVerification | null;
     setForm(prev => ({
       ...prev,
       personal: {
         ...prev.personal,
-        full_name: (profile?.full_name as string | undefined) || prev.personal.full_name,
-        phone_number: (profile?.phone as string | undefined) || prev.personal.phone_number,
-        email: (profile?.email as string | undefined) || prev.personal.email,
+        full_name: verification?.full_name || (profile?.full_name as string | undefined) || prev.personal.full_name,
+        phone_number: verification?.phone_number || (profile?.phone as string | undefined) || prev.personal.phone_number,
+        email: verification?.email || (profile?.email as string | undefined) || prev.personal.email,
+        date_of_birth: verification?.date_of_birth || prev.personal.date_of_birth,
+        gender: verification?.gender || prev.personal.gender,
       },
       professional: {
         ...prev.professional,
         trade_category:
-          Array.isArray(worker?.skills) && worker?.skills[0]
+          verification?.trade_category ||
+          (Array.isArray(worker?.skills) && worker?.skills[0]
             ? String(worker.skills[0])
-            : prev.professional.trade_category,
-        current_city: (profile?.location_label as string | undefined) || prev.professional.current_city,
+            : prev.professional.trade_category),
+        years_of_experience: verification?.years_of_experience ?? prev.professional.years_of_experience,
+        business_name: verification?.business_name || prev.professional.business_name,
+        current_region: verification?.current_region || prev.professional.current_region,
+        current_city:
+          verification?.current_city ||
+          (profile?.location_label as string | undefined) ||
+          prev.professional.current_city,
       },
     }));
   }, [handoffContext]);
@@ -152,7 +188,7 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
       return;
     }
     setSubmitting(true);
-    setUploadProgress('Creating application...');
+    setUploadProgress(isMoreInfoResubmission ? 'Updating application...' : 'Creating application...');
     try {
       const refs = form.references.filter(r => r.reference_name && r.phone_number);
       const application = await apiPost<{ id: string; application_number: string }>(
@@ -212,6 +248,14 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
     }
   };
 
+  const handleTrackSubmittedApplication = () => {
+    const params = new URLSearchParams();
+    if (applicationNumber) params.set('application_number', applicationNumber);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${query ? `?${query}` : ''}#/status`);
+    onNavigate('status');
+  };
+
   if (submitted) {
     return (
       <PublicLayout onNavigate={onNavigate}>
@@ -220,9 +264,13 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
             <div className="w-20 h-20 rounded-3xl bg-success-light flex items-center justify-center mx-auto mb-6 shadow-warm-md">
               <CheckCircle size={36} className="text-success" />
             </div>
-            <h1 className="text-display-sm font-bold text-text-primary mb-3">Application Submitted!</h1>
+            <h1 className="text-display-sm font-bold text-text-primary mb-3">
+              {isMoreInfoResubmission ? 'Application Updated!' : 'Application Submitted!'}
+            </h1>
             <p className="text-text-secondary mb-6">
-              Your verification application has been received. Our team will review it within 48 hours.
+              {isMoreInfoResubmission
+                ? 'Your updated verification details have been received. Our team will review them shortly.'
+                : 'Your verification application has been received. Our team will review it within 48 hours.'}
             </p>
             <div className="card p-5 mb-8">
               <p className="text-sm text-text-muted mb-1">Your Application Number</p>
@@ -231,7 +279,7 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => onNavigate('status')}
+                onClick={handleTrackSubmittedApplication}
                 className="btn-primary"
               >
                 Track My Application
@@ -247,14 +295,81 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
     );
   }
 
+  if (isBlockedExistingApplication && existingVerification) {
+    return (
+      <PublicLayout onNavigate={onNavigate}>
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-16">
+          <div className="card p-6 text-center animate-slide-up">
+            <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-5">
+              <ClipboardCheck size={28} className="text-primary" />
+            </div>
+            <h1 className="text-xl font-bold text-text-primary mb-2">
+              {existingVerification.status === 'approved'
+                ? 'Verification Approved'
+                : 'Application Already Submitted'}
+            </h1>
+            <p className="text-sm text-text-secondary mb-5">
+              {existingVerification.status === 'approved'
+                ? 'Your worker profile has already been verified.'
+                : 'Your application is already with the verification team. You can track it from the status page.'}
+            </p>
+            <div className="card p-4 mb-5 bg-neutral-50 shadow-none">
+              <p className="text-xs text-text-muted mb-1">Application Number</p>
+              <p className="font-mono font-bold text-primary">{existingVerification.application_number}</p>
+            </div>
+            <button
+              onClick={() => {
+                const params = new URLSearchParams();
+                params.set('application_number', existingVerification.application_number);
+                window.history.replaceState(null, '', `?${params.toString()}#/status`);
+                onNavigate('status');
+              }}
+              className="btn-primary mx-auto"
+            >
+              Track Application
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      </PublicLayout>
+    );
+  }
+
   return (
     <PublicLayout onNavigate={onNavigate}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-display-sm font-bold text-text-primary mb-2">Verification Application</h1>
-          <p className="text-text-secondary">Complete all steps to apply for official artisan verification.</p>
+          <h1 className="text-display-sm font-bold text-text-primary mb-2">
+            {isMoreInfoResubmission ? 'Update Verification Application' : 'Verification Application'}
+          </h1>
+          <p className="text-text-secondary">
+            {isMoreInfoResubmission
+              ? 'Update the requested details and upload any replacement documents.'
+              : 'Complete all steps to apply for official artisan verification.'}
+          </p>
         </div>
+
+        {isMoreInfoResubmission && (
+          <div className="card p-4 mb-6 border-l-4 border-gold-500 bg-gold-50/60">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={20} className="text-gold-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-text-primary">More information requested</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  {existingVerification?.more_info_message ||
+                    existingVerification?.admin_notes ||
+                    'The verification team needs updated details or documents before continuing.'}
+                </p>
+                {existingVerification?.application_number && (
+                  <p className="text-xs text-text-muted mt-2 font-mono">
+                    {existingVerification.application_number}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <StepIndicator steps={STEPS} currentStep={step} />
 

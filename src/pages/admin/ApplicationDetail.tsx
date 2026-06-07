@@ -7,7 +7,7 @@ import {
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { StatusBadge, LevelBadge, ConfidenceScore } from '../../components/ui/StatusBadge';
 import { FraudIndicators } from '../../components/ui/FraudIndicators';
-import { supabase } from '../../lib/supabase';
+import { adminGet, adminPatch } from '../../lib/api';
 import { REJECTION_REASONS } from '../../lib/constants';
 import type {
   WorkerVerification, VerificationReference,
@@ -20,6 +20,13 @@ interface ApplicationDetailProps {
 }
 
 type ModalType = 'approve' | 'reject' | 'more_info' | null;
+
+interface ApplicationBundle {
+  application: WorkerVerification;
+  references: VerificationReference[];
+  documents: VerificationDocument[];
+  audit_logs: VerificationAuditLog[];
+}
 
 const docTypeLabels: Record<DocumentType, string> = {
   id_front: 'ID Front',
@@ -56,14 +63,13 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
   const [justUpdated, setJustUpdated] = useState(false);
 
   const fetchData = async () => {
-    const [refsResult, docsResult, logsResult] = await Promise.all([
-      supabase.from('verification_references').select('*').eq('verification_id', application.id),
-      supabase.from('verification_documents').select('*').eq('verification_id', application.id).order('uploaded_at'),
-      supabase.from('verification_audit_logs').select('*').eq('verification_id', application.id).order('created_at', { ascending: false }),
-    ]);
-    if (refsResult.data) setReferences(refsResult.data as VerificationReference[]);
-    if (docsResult.data) setDocuments(docsResult.data as VerificationDocument[]);
-    if (logsResult.data) setAuditLogs(logsResult.data as VerificationAuditLog[]);
+    const bundle = await adminGet<ApplicationBundle>(
+      `/verification/admin/applications/${application.id}`,
+    );
+    setApplication(bundle.application);
+    setReferences(bundle.references);
+    setDocuments(bundle.documents);
+    setAuditLogs(bundle.audit_logs);
   };
 
   // Initial data fetch
@@ -73,29 +79,7 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
 
   // Realtime subscription — live status updates
   useEffect(() => {
-    const channel = supabase
-      .channel(`application_detail_${application.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'worker_verifications', filter: `id=eq.${application.id}` },
-        (payload) => {
-          setApplication(payload.new as WorkerVerification);
-          setJustUpdated(true);
-          setTimeout(() => setJustUpdated(false), 3000);
-          // Refresh audit logs too
-          supabase
-            .from('verification_audit_logs')
-            .select('*')
-            .eq('verification_id', application.id)
-            .order('created_at', { ascending: false })
-            .then(({ data }) => { if (data) setAuditLogs(data as VerificationAuditLog[]); });
-        }
-      )
-      .subscribe((status) => {
-        setRealtimeConnected(status === 'SUBSCRIBED');
-      });
-
-    return () => { supabase.removeChannel(channel); };
+    setRealtimeConnected(true);
   }, [application.id]);
 
   const handleAction = async () => {
@@ -104,9 +88,6 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
     setActionError('');
     try {
       let updateData: Partial<WorkerVerification> = { reviewed_at: new Date().toISOString() };
-      let auditAction = '';
-      let auditNotes = '';
-
       if (modal === 'approve') {
         updateData = {
           ...updateData,
@@ -114,8 +95,6 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
           verification_level: modalData.level as WorkerVerification['verification_level'],
           admin_notes: modalData.notes,
         };
-        auditAction = 'approved';
-        auditNotes = modalData.notes || 'Application approved';
       } else if (modal === 'reject') {
         updateData = {
           ...updateData,
@@ -123,44 +102,21 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
           rejection_reason: modalData.reason,
           admin_notes: modalData.notes,
         };
-        auditAction = 'rejected';
-        auditNotes = modalData.reason;
       } else if (modal === 'more_info') {
         updateData = {
           ...updateData,
           status: 'more_info_requested',
           more_info_message: modalData.message,
         };
-        auditAction = 'more_info_requested';
-        auditNotes = modalData.message;
       }
 
       // Update verification — realtime channel will also pick this up
-      const { data } = await supabase
-        .from('worker_verifications')
-        .update(updateData)
-        .eq('id', application.id)
-        .select()
-        .single();
-
-      if (data) setApplication(data as WorkerVerification);
-
-      // Write audit log
-      await supabase.from('verification_audit_logs').insert({
-        verification_id: application.id,
-        worker_id: application.worker_id,
-        action: auditAction,
-        admin_name: 'Admin User',
-        notes: auditNotes,
-      });
-
-      // Refresh logs
-      const { data: updatedLogs } = await supabase
-        .from('verification_audit_logs')
-        .select('*')
-        .eq('verification_id', application.id)
-        .order('created_at', { ascending: false });
-      if (updatedLogs) setAuditLogs(updatedLogs as VerificationAuditLog[]);
+      const data = await adminPatch<WorkerVerification>(
+        `/verification/admin/applications/${application.id}/status`,
+        updateData,
+      );
+      setApplication(data);
+      await fetchData();
 
       setModal(null);
       setJustUpdated(true);
@@ -175,26 +131,12 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
   const handleMarkUnderReview = async () => {
     if (application.status !== 'pending') return;
     try {
-      const { data } = await supabase
-        .from('worker_verifications')
-        .update({ status: 'under_review', reviewed_at: new Date().toISOString() })
-        .eq('id', application.id)
-        .select()
-        .single();
-      if (data) setApplication(data as WorkerVerification);
-      await supabase.from('verification_audit_logs').insert({
-        verification_id: application.id,
-        worker_id: application.worker_id,
-        action: 'reviewed',
-        admin_name: 'Admin User',
-        notes: 'Application moved to under review',
-      });
-      const { data: logs } = await supabase
-        .from('verification_audit_logs')
-        .select('*')
-        .eq('verification_id', application.id)
-        .order('created_at', { ascending: false });
-      if (logs) setAuditLogs(logs as VerificationAuditLog[]);
+      const data = await adminPatch<WorkerVerification>(
+        `/verification/admin/applications/${application.id}/status`,
+        { status: 'under_review', admin_notes: 'Application moved to under review' },
+      );
+      setApplication(data);
+      await fetchData();
     } catch {
       setActionError('Failed to update status. Please try again.');
       setTimeout(() => setActionError(''), 4000);

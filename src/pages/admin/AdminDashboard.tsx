@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Users, FileText, Zap } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { supabase } from '../../lib/supabase';
+import { adminGet } from '../../lib/api';
 import type { WorkerVerification } from '../../types';
 
 interface AdminDashboardProps {
@@ -20,14 +20,18 @@ const statusColors: Record<string, string> = {
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [applications, setApplications] = useState<WorkerVerification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    supabase
-      .from('worker_verifications')
-      .select('*')
-      .order('submitted_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) setApplications(data as WorkerVerification[]);
+    adminGet<WorkerVerification[]>('/verification/admin/applications')
+      .then((data) => {
+        setApplications(data);
+        setLoadError('');
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : 'Could not load applications.');
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);
@@ -94,6 +98,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   return (
     <AdminLayout currentPage="dashboard" onNavigate={onNavigate}>
       <div className="space-y-6 animate-fade-in">
+        {loadError && (
+          <div className="card p-4 border border-error/20 bg-error-light/30">
+            <p className="text-sm text-error">{loadError}</p>
+          </div>
+        )}
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, i) => {

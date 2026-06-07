@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, AlertCircle, FileText, Clock } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { supabase } from '../../lib/supabase';
+import { adminGet } from '../../lib/api';
 import type { VerificationAuditLog, AuditAction } from '../../types';
 
 interface AuditLogPageProps {
@@ -22,17 +22,18 @@ export function AuditLogPage({ onNavigate }: AuditLogPageProps) {
   const [logs, setLogs] = useState<(VerificationAuditLog & { worker_verifications?: { full_name: string; application_number: string } })[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState<AuditAction | 'all'>('all');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    supabase
-      .from('verification_audit_logs')
-      .select('*, worker_verifications(full_name, application_number)')
-      .order('created_at', { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
-        if (data) setLogs(data as typeof logs);
-        setLoading(false);
-      });
+    adminGet<typeof logs>('/verification/admin/audit-logs?limit=100')
+      .then((data) => {
+        setLogs(data);
+        setLoadError('');
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : 'Could not load audit logs.');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = actionFilter === 'all' ? logs : logs.filter(l => l.action === actionFilter);
@@ -41,6 +42,11 @@ export function AuditLogPage({ onNavigate }: AuditLogPageProps) {
     <AdminLayout currentPage="audits" onNavigate={onNavigate}>
       <div className="space-y-4 animate-fade-in">
         {/* Filters */}
+        {loadError && (
+          <div className="card p-4 border border-error/20 bg-error-light/30">
+            <p className="text-sm text-error">{loadError}</p>
+          </div>
+        )}
         <div className="card p-4 flex items-center gap-4 flex-wrap">
           <span className="text-sm font-semibold text-text-primary">Filter by action:</span>
           <div className="flex gap-2 flex-wrap">

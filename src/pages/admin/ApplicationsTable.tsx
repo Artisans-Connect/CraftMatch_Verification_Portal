@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, Filter, ChevronDown, AlertTriangle } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { StatusBadge, LevelBadge } from '../../components/ui/StatusBadge';
-import { supabase } from '../../lib/supabase';
+import { adminGet } from '../../lib/api';
 import { TRADE_CATEGORIES, GHANA_REGIONS } from '../../lib/constants';
 import type { WorkerVerification, VerificationStatus } from '../../types';
 
@@ -28,14 +28,24 @@ export function ApplicationsTable({ onNavigate, currentPage = 'applications', fi
   const [statusFilter, setStatusFilter] = useState<string>(filterStatus || 'all');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    let query = supabase.from('worker_verifications').select('*').order('submitted_at', { ascending: false });
-    if (filterStatus) query = query.eq('status', filterStatus);
-    query.then(({ data }) => {
-      if (data) setApplications(data as WorkerVerification[]);
-      setLoading(false);
-    });
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (filterStatus) params.set('status', filterStatus);
+    adminGet<WorkerVerification[]>(
+      `/verification/admin/applications${params.toString() ? `?${params.toString()}` : ''}`,
+    )
+      .then((data) => {
+        setApplications(data);
+        setLoadError('');
+      })
+      .catch((error) => {
+        setApplications([]);
+        setLoadError(error instanceof Error ? error.message : 'Could not load applications.');
+      })
+      .finally(() => setLoading(false));
   }, [filterStatus]);
 
   const filtered = applications.filter(app => {
@@ -53,6 +63,11 @@ export function ApplicationsTable({ onNavigate, currentPage = 'applications', fi
     <AdminLayout currentPage={currentPage} onNavigate={onNavigate}>
       <div className="space-y-4 animate-fade-in">
         {/* Filters */}
+        {loadError && (
+          <div className="card p-4 border border-error/20 bg-error-light/30">
+            <p className="text-sm text-error">{loadError}</p>
+          </div>
+        )}
         <div className="card p-4">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
