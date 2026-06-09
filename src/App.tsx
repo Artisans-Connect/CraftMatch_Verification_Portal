@@ -6,6 +6,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ApplicationsTable } from './pages/admin/ApplicationsTable';
 import { ApplicationDetail } from './pages/admin/ApplicationDetail';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
 import { apiPost } from './lib/api';
@@ -22,7 +23,8 @@ type Page =
   | 'rejected'
   | 'application_detail'
   | 'audits'
-  | 'settings';
+  | 'settings'
+  | 'email_verified';
 
 const filterMap: Record<string, VerificationStatus | null> = {
   pending: 'pending',
@@ -34,6 +36,7 @@ const filterMap: Record<string, VerificationStatus | null> = {
 
 function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
+  if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
   if (hash.startsWith('/portal/admin/applications')) return 'applications';
   if (hash.startsWith('/portal/admin')) return 'dashboard';
@@ -100,6 +103,10 @@ export default function App() {
 
     if (page === 'settings') {
       return <AdminDashboard onNavigate={navigate} />;
+    }
+
+    if (page === 'email_verified') {
+      return <EmailVerifiedPage />;
     }
 
     return <LandingPage onNavigate={navigate} />;
