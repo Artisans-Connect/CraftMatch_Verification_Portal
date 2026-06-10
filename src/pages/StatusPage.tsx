@@ -365,7 +365,7 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
                   <div>
                     <h3 className="text-xl font-bold text-success-dark mb-1">You're Officially Verified!</h3>
                     <p className="text-sm text-text-secondary">
-                      Your artisan profile now carries the official Artisans verification badge.
+                      Your artisan profile now carries the official CraftMatch verification badge.
                       Customers will see you as a trusted professional.
                     </p>
                     {application.verification_level && (

@@ -15,7 +15,7 @@ export function EmailVerifiedPage() {
           Your email has been successfully verified. 
         </p>
         <p className="text-sm text-text-muted bg-neutral-50 p-4 rounded-xl">
-          You can now return to the Artisans app to continue. You may safely close this tab.
+          You can now return to the CraftMatch app to continue. You may safely close this tab.
         </p>
       </div>
     </div>

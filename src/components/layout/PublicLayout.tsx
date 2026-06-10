@@ -48,7 +48,7 @@ export function PublicLayout({ children, showBack, backLabel = 'Back', onBack, o
                 <Shield size={20} className="text-white" />
               </div>
               <div className="text-left">
-                <span className="font-bold text-text-primary text-base block leading-none">Artisans</span>
+                <span className="font-bold text-text-primary text-base block leading-none">CraftMatch</span>
                 <span className="block text-[10px] text-text-muted font-medium">Verification Portal</span>
               </div>
             </button>

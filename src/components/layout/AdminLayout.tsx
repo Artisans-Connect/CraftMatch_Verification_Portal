@@ -46,7 +46,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
             </div>
             {!collapsed && (
               <div>
-                <p className="font-bold text-text-primary text-sm leading-tight">Artisans</p>
+                <p className="font-bold text-text-primary text-sm leading-tight">CraftMatch</p>
                 <p className="text-[10px] text-text-muted">Admin Portal</p>
               </div>
             )}

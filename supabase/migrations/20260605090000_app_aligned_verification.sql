@@ -1,7 +1,7 @@
 /*
   # App-aligned worker verification schema
 
-  Apply this single migration to the shared Artisans Supabase project.
+  Apply this single migration to the shared CraftMatch Supabase project.
   It replaces the portal's draft/demo migrations and links verification
   approval to the existing backend `workers.is_verified` flag.
 */
