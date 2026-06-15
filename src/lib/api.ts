@@ -62,16 +62,27 @@ export async function adminGet<T>(path: string): Promise<T> {
 }
 
 export async function adminPatch<T>(path: string, body: unknown): Promise<T> {
+  return adminRequest<T>(path, { method: 'PATCH', body });
+}
+
+export async function adminPost<T>(path: string, body: unknown): Promise<T> {
+  return adminRequest<T>(path, { method: 'POST', body });
+}
+
+export async function adminRequest<T>(
+  path: string,
+  options: { method: 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown },
+): Promise<T> {
   if (!apiBaseUrl) throw new Error('Missing VITE_EXPRESS_API_BASE_URL');
 
   const response = await fetch(`${apiBaseUrl.replace(/\/$/, '')}${path}`, {
-    method: 'PATCH',
+    method: options.method,
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...adminHeaders(),
     },
-    body: JSON.stringify(body),
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const json = await response.json().catch(() => null);

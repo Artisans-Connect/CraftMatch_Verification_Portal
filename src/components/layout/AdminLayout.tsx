@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Shield, LayoutDashboard, FileText, CheckCircle, XCircle,
   ClipboardList, Settings, ChevronLeft, ChevronRight, LogOut,
-  Clock, AlertCircle
+  Clock, AlertCircle, Layers3, Users
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -18,6 +18,8 @@ const navItems = [
   { id: 'more_info', label: 'More Info Needed', icon: AlertCircle, route: '/portal/admin/more-info' },
   { id: 'approved', label: 'Approved', icon: CheckCircle, route: '/portal/admin/approved' },
   { id: 'rejected', label: 'Rejected', icon: XCircle, route: '/portal/admin/rejected' },
+  { id: 'catalog', label: 'Service Catalog', icon: Layers3, route: '/portal/admin/catalog' },
+  { id: 'accounts', label: 'Accounts', icon: Users, route: '/portal/admin/accounts' },
   { id: 'audits', label: 'Audit Log', icon: ClipboardList, route: '/portal/admin/audits' },
   { id: 'settings', label: 'Settings', icon: Settings, route: '/portal/admin/settings' },
 ];
@@ -26,6 +28,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
   const [collapsed, setCollapsed] = useState(false);
 
   const handleNavigate = (item: typeof navItems[0]) => {
+    window.location.hash = item.route;
     if (onNavigate) onNavigate(item.id);
   };
 

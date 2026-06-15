@@ -94,6 +94,88 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface AdminSubcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon_name: string | null;
+  color_hex: string | null;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  subcategories: AdminSubcategory[];
+}
+
+export interface AdminAccountWorker {
+  id: string;
+  is_available: boolean;
+  is_verified: boolean;
+  rating: number;
+  total_jobs: number;
+  skills: string[];
+  service_areas: string[];
+}
+
+export interface AdminAccountAuthUser {
+  email: string | null;
+  phone: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+}
+
+export interface AdminAccount {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  role: string | null;
+  signup_type: string | null;
+  last_active_mode: string | null;
+  avatar_url: string | null;
+  account_status: 'active' | 'suspended';
+  suspended_at: string | null;
+  suspension_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  workers: AdminAccountWorker | AdminAccountWorker[] | null;
+  auth_user: AdminAccountAuthUser | null;
+  verification: Pick<WorkerVerification, 'status' | 'verification_level' | 'application_number' | 'submitted_at'> | null;
+}
+
+export interface AdminAccountDetail {
+  profile: AdminAccount & {
+    workers?: AdminAccountWorker | AdminAccountWorker[] | null;
+  };
+  auth_user: AdminAccountAuthUser & { id: string } | null;
+  verifications: WorkerVerification[];
+  recent_jobs: Array<{
+    id: string;
+    title: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    categories?: { name: string } | null;
+  }>;
+  recent_applications: Array<{
+    id: string;
+    job_id: string;
+    status: string;
+    created_at: string;
+    jobs?: { title: string; status: string } | null;
+  }>;
+}
+
 // Form data types
 export interface PersonalInfoData {
   full_name: string;

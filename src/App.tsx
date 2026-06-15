@@ -6,6 +6,8 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ApplicationsTable } from './pages/admin/ApplicationsTable';
 import { ApplicationDetail } from './pages/admin/ApplicationDetail';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { ServiceCatalogPage } from './pages/admin/ServiceCatalogPage';
+import { AccountsPage } from './pages/admin/AccountsPage';
 import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
@@ -23,6 +25,8 @@ type Page =
   | 'rejected'
   | 'application_detail'
   | 'audits'
+  | 'catalog'
+  | 'accounts'
   | 'settings'
   | 'email_verified';
 
@@ -38,6 +42,8 @@ function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
   if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
+  if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
+  if (hash.startsWith('/portal/admin/accounts')) return 'accounts';
   if (hash.startsWith('/portal/admin/applications')) return 'applications';
   if (hash.startsWith('/portal/admin')) return 'dashboard';
   if (hash.startsWith('/apply')) return 'apply';
@@ -67,6 +73,23 @@ export default function App() {
       setSelectedApplication(data as WorkerVerification);
     }
     setPage(targetPage as Page);
+    const routeByPage: Partial<Record<Page, string>> = {
+      home: '/',
+      apply: '/apply',
+      status: '/status',
+      dashboard: '/portal/admin',
+      applications: '/portal/admin/applications',
+      pending: '/portal/admin/pending',
+      more_info: '/portal/admin/more-info',
+      approved: '/portal/admin/approved',
+      rejected: '/portal/admin/rejected',
+      catalog: '/portal/admin/catalog',
+      accounts: '/portal/admin/accounts',
+      audits: '/portal/admin/audits',
+      settings: '/portal/admin/settings',
+    };
+    const route = routeByPage[targetPage as Page];
+    if (route) window.location.hash = route;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -100,6 +123,8 @@ export default function App() {
     }
 
     if (page === 'audits') return <AuditLogPage onNavigate={navigate} />;
+    if (page === 'catalog') return <ServiceCatalogPage onNavigate={navigate} />;
+    if (page === 'accounts') return <AccountsPage onNavigate={navigate} />;
 
     if (page === 'settings') {
       return <AdminDashboard onNavigate={navigate} />;
