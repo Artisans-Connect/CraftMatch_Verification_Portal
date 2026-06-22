@@ -61,9 +61,15 @@ export function UpdatePasswordPage() {
           <p className="text-lg text-text-secondary mb-8">
             Your password has been successfully changed.
           </p>
-          <p className="text-sm text-text-muted bg-neutral-50 p-4 rounded-xl">
+          <p className="text-sm text-text-muted bg-neutral-50 p-4 rounded-xl mb-6">
             You can now return to the CraftMatch app and log in with your new password. You may safely close this tab.
           </p>
+          <a
+            href="craftmatch://"
+            className="inline-flex w-full py-4 bg-gradient-to-r from-brand-primary to-brand-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-brand-primary/30 transition-all items-center justify-center"
+          >
+            Open CraftMatch App
+          </a>
         </div>
       </div>
     );
