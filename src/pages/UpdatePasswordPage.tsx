@@ -20,9 +20,21 @@ export function UpdatePasswordPage() {
         if (response.error) setError(response.error.message);
       });
     } else {
-      // Handle implicit flow hash errors
+      // Handle implicit flow access token
       const hash = window.location.hash;
-      if (hash.includes('error=')) {
+      if (hash.includes('access_token')) {
+        const hashParams = new URLSearchParams(hash.replace('#', '?'));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken && refreshToken) {
+          supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          }).then((res: any) => {
+            if (res.error) setError(res.error.message);
+          });
+        }
+      } else if (hash.includes('error=')) {
         const hashParams = new URLSearchParams(hash.replace('#', '?'));
         const errDesc = hashParams.get('error_description');
         if (errDesc) setError(errDesc.replace(/\+/g, ' '));
