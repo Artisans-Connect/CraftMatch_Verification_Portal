@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { KeyRound, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -10,8 +10,32 @@ export function UpdatePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    // Handle PKCE code exchange if present in URL
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) setError(error.message);
+      });
+    } else {
+      // Handle implicit flow hash errors
+      const hash = window.location.hash;
+      if (hash.includes('error=')) {
+        const hashParams = new URLSearchParams(hash.replace('#', '?'));
+        const errDesc = hashParams.get('error_description');
+        if (errDesc) setError(errDesc.replace(/\+/g, ' '));
+      }
+    }
 
-
+    // Verify session exists
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session && !code && !window.location.hash.includes('access_token')) {
+        setError('Your password reset link is invalid or has expired. Please request a new one from the app.');
+      }
+    });
+  }, []);
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
@@ -57,7 +81,8 @@ export function UpdatePasswordPage() {
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="text-green-600 w-10 h-10" />
           </div>
-          <h1 className="text-3xl font-bold text-text-primary mb-4">Password Updated!</h1>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">CraftMatch</h1>
+          <h2 className="text-xl font-semibold text-text-primary mb-4">Password Updated!</h2>
           <p className="text-lg text-text-secondary mb-8">
             Your password has been successfully changed.
           </p>
@@ -65,10 +90,10 @@ export function UpdatePasswordPage() {
             You can now return to the CraftMatch app and log in with your new password. You may safely close this tab.
           </p>
           <a
-            href="craftmatch://"
-            className="inline-flex w-full py-4 bg-gradient-to-r from-brand-primary to-brand-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-brand-primary/30 transition-all items-center justify-center"
+            href="craftmatch://login"
+            className="inline-flex w-full py-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 transition-all items-center justify-center"
           >
-            Open CraftMatch App
+            Return to Sign In
           </a>
         </div>
       </div>
@@ -84,6 +109,7 @@ export function UpdatePasswordPage() {
         <div className="w-16 h-16 bg-primary-light rounded-2xl flex items-center justify-center mb-6">
           <KeyRound className="text-primary-dark w-8 h-8" />
         </div>
+        <h2 className="text-sm font-bold text-primary uppercase tracking-wider mb-1">CraftMatch</h2>
         <h1 className="text-3xl font-bold text-text-primary mb-2">Create new password</h1>
         <p className="text-text-secondary mb-8">
           Your new password must be different from previous used passwords.
