@@ -16,8 +16,8 @@ export function UpdatePasswordPage() {
     const code = params.get('code');
     
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) setError(error.message);
+      supabase.auth.exchangeCodeForSession(code).then((response: any) => {
+        if (response.error) setError(response.error.message);
       });
     } else {
       // Handle implicit flow hash errors
@@ -30,8 +30,8 @@ export function UpdatePasswordPage() {
     }
 
     // Verify session exists
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session && !code && !window.location.hash.includes('access_token')) {
+    supabase.auth.getSession().then((response: any) => {
+      if (!response.data?.session && !code && !window.location.hash.includes('access_token')) {
         setError('Your password reset link is invalid or has expired. Please request a new one from the app.');
       }
     });
