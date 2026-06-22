@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState, DragEvent } from 'react';
 import { Upload, X, FileText, Image, CheckCircle } from 'lucide-react';
 
 interface FileUploadProps {
@@ -25,13 +25,13 @@ export function FileUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     const maxBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxBytes) return `File too large. Max ${maxSizeMB}MB.`;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) return 'Invalid file type. Use PNG, JPG, or PDF.';
     return null;
-  };
+  }, [maxSizeMB]);
 
   const handleFiles = useCallback((newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -46,9 +46,9 @@ export function FileUpload({
     } else {
       onFilesChange(fileArray.slice(0, 1));
     }
-  }, [files, multiple, onFilesChange]);
+  }, [files, multiple, onFilesChange, validateFile]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);

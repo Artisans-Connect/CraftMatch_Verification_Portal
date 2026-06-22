@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Briefcase,
   FileText, CheckCircle, XCircle, AlertCircle, Shield, User,
@@ -62,7 +62,7 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const bundle = await adminGet<ApplicationBundle>(
       `/verification/admin/applications/${application.id}`,
     );
@@ -70,12 +70,12 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
     setReferences(bundle.references);
     setDocuments(bundle.documents);
     setAuditLogs(bundle.audit_logs);
-  };
+  }, [application.id]);
 
   // Initial data fetch
   useEffect(() => {
     fetchData();
-  }, [application.id]);
+  }, [fetchData]);
 
   // Realtime subscription — live status updates
   useEffect(() => {

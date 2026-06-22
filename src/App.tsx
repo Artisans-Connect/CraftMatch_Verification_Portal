@@ -9,6 +9,7 @@ import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ServiceCatalogPage } from './pages/admin/ServiceCatalogPage';
 import { AccountsPage } from './pages/admin/AccountsPage';
 import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
+import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
 import { apiPost } from './lib/api';
@@ -28,7 +29,8 @@ type Page =
   | 'catalog'
   | 'accounts'
   | 'settings'
-  | 'email_verified';
+  | 'email_verified'
+  | 'update_password';
 
 const filterMap: Record<string, VerificationStatus | null> = {
   pending: 'pending',
@@ -41,6 +43,7 @@ const filterMap: Record<string, VerificationStatus | null> = {
 function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
   if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
+  if (window.location.pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
   if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
   if (hash.startsWith('/portal/admin/accounts')) return 'accounts';
@@ -87,6 +90,7 @@ export default function App() {
       accounts: '/portal/admin/accounts',
       audits: '/portal/admin/audits',
       settings: '/portal/admin/settings',
+      update_password: '/update-password',
     };
     const route = routeByPage[targetPage as Page];
     if (route) window.location.hash = route;
@@ -132,6 +136,10 @@ export default function App() {
 
     if (page === 'email_verified') {
       return <EmailVerifiedPage />;
+    }
+
+    if (page === 'update_password') {
+      return <UpdatePasswordPage />;
     }
 
     return <LandingPage onNavigate={navigate} />;
