@@ -81,8 +81,8 @@ export function UpdatePasswordPage() {
         className="max-w-md w-full p-8 bg-white rounded-3xl border border-neutral-100" 
         style={{ boxShadow: '0 20px 50px rgba(44,36,24,0.1)' }}
       >
-        <div className="w-16 h-16 bg-brand-light rounded-2xl flex items-center justify-center mb-6">
-          <KeyRound className="text-brand-dark w-8 h-8" />
+        <div className="w-16 h-16 bg-primary-light rounded-2xl flex items-center justify-center mb-6">
+          <KeyRound className="text-primary-dark w-8 h-8" />
         </div>
         <h1 className="text-3xl font-bold text-text-primary mb-2">Create new password</h1>
         <p className="text-text-secondary mb-8">
@@ -106,7 +106,7 @@ export function UpdatePasswordPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all pr-12"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all pr-12"
                   placeholder="Enter your new password"
                   required
                   disabled={loading}
@@ -129,7 +129,7 @@ export function UpdatePasswordPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                 placeholder="Confirm your new password"
                 required
                 disabled={loading}
@@ -140,7 +140,7 @@ export function UpdatePasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-brand-primary to-brand-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-brand-primary/30 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Reset Password'}
           </button>
