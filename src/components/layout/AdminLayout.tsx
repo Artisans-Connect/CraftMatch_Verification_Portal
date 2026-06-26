@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Shield, LayoutDashboard, FileText, CheckCircle, XCircle,
   ClipboardList, Settings, ChevronLeft, ChevronRight, LogOut,
-  Clock, AlertCircle, Layers3, Users
+  Clock, AlertCircle, Layers3, Users, Menu
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -26,28 +26,39 @@ const navItems = [
 
 export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const handleNavigate = (item: typeof navItems[0]) => {
     window.location.hash = item.route;
+    setIsMobileOpen(false);
     if (onNavigate) onNavigate(item.id);
   };
 
   return (
     <div className="flex h-screen bg-surface-base overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden transition-opacity"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`flex-shrink-0 border-r border-neutral-100 flex flex-col transition-all duration-300
-          ${collapsed ? 'w-16' : 'w-56'}`}
+        className={`fixed inset-y-0 left-0 z-50 md:static flex-shrink-0 border-r border-neutral-100 flex flex-col transition-all duration-300
+          ${isMobileOpen ? 'translate-x-0 w-56' : '-translate-x-full md:translate-x-0'}
+          ${collapsed ? 'md:w-16' : 'md:w-56'}`}
         style={{ backgroundColor: '#FFFCF8' }}
       >
         {/* Logo */}
         <div className="p-4 border-b border-neutral-100">
-          <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
+          <div className={`flex items-center gap-2.5 ${collapsed ? 'md:justify-center' : ''}`}>
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0"
               style={{ boxShadow: '0 2px 8px rgba(193,90,61,0.3)' }}>
               <Shield size={16} className="text-white" />
             </div>
-            {!collapsed && (
+            {(!collapsed || isMobileOpen) && (
               <div>
                 <p className="font-bold text-text-primary text-sm leading-tight">CraftMatch</p>
                 <p className="text-[10px] text-text-muted">Admin Portal</p>
@@ -61,15 +72,16 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
+            const isCollapsedState = collapsed && !isMobileOpen;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item)}
-                className={`w-full text-left ${isActive ? 'sidebar-item-active' : 'sidebar-item'} ${collapsed ? 'justify-center px-2' : ''}`}
-                title={collapsed ? item.label : undefined}
+                className={`w-full text-left ${isActive ? 'sidebar-item-active' : 'sidebar-item'} ${isCollapsedState ? 'justify-center px-2' : ''}`}
+                title={isCollapsedState ? item.label : undefined}
               >
                 <Icon size={18} className="flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {(!collapsed || isMobileOpen) && <span>{item.label}</span>}
               </button>
             );
           })}
@@ -79,15 +91,15 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
         <div className="p-3 border-t border-neutral-100 space-y-2">
           <button
             onClick={() => onNavigate?.('home')}
-            className={`w-full sidebar-item ${collapsed ? 'justify-center px-2' : ''} text-error hover:bg-error-light hover:text-error`}
-            title={collapsed ? 'Sign Out' : undefined}
+            className={`w-full sidebar-item ${(collapsed && !isMobileOpen) ? 'justify-center px-2' : ''} text-error hover:bg-error-light hover:text-error`}
+            title={(collapsed && !isMobileOpen) ? 'Sign Out' : undefined}
           >
             <LogOut size={18} />
-            {!collapsed && <span>Sign Out</span>}
+            {(!collapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className={`w-full sidebar-item justify-center`}
+            className="w-full sidebar-item justify-center hidden md:flex"
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
@@ -99,11 +111,20 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
         {/* Top bar */}
         <header className="border-b border-neutral-100 px-6 py-4 flex items-center justify-between"
           style={{ backgroundColor: '#FFFFFF' }}>
-          <div>
-            <h1 className="text-lg font-bold text-text-primary capitalize">
-              {navItems.find(n => n.id === currentPage)?.label || 'Dashboard'}
-            </h1>
-            <p className="text-xs text-text-muted">Artisans Verification Portal</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              className="p-1.5 rounded-lg border border-neutral-200 text-text-primary hover:bg-neutral-50 md:hidden flex-shrink-0"
+              aria-label="Toggle menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-text-primary capitalize">
+                {navItems.find(n => n.id === currentPage)?.label || 'Dashboard'}
+              </h1>
+              <p className="text-xs text-text-muted">Artisans Verification Portal</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">

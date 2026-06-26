@@ -11,7 +11,8 @@ import { adminGet, adminPatch } from '../../lib/api';
 import { REJECTION_REASONS } from '../../lib/constants';
 import type {
   WorkerVerification, VerificationReference,
-  VerificationAuditLog, VerificationDocument, DocumentType
+  VerificationAuditLog, VerificationDocument, DocumentType,
+  AdminCategory
 } from '../../types';
 
 interface ApplicationDetailProps {
@@ -62,6 +63,26 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
 
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [tradeAction, setTradeAction] = useState<'keep' | 'assign' | 'adopt'>('keep');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedAssignedTrade, setSelectedAssignedTrade] = useState<string>('');
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await adminGet<AdminCategory[]>('/admin/categories');
+        setCategories(data);
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  const standardTrades = categories.flatMap(cat => cat.subcategories.map(sub => sub.name.toLowerCase()));
+  const isCustomTrade = categories.length > 0 && !standardTrades.includes(application.trade_category.toLowerCase());
+
   const fetchData = useCallback(async () => {
     const bundle = await adminGet<ApplicationBundle>(
       `/verification/admin/applications/${application.id}`,
@@ -87,7 +108,7 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
     setSubmitting(true);
     setActionError('');
     try {
-      let updateData: Partial<WorkerVerification> = { reviewed_at: new Date().toISOString() };
+      let updateData: any = { reviewed_at: new Date().toISOString() };
       if (modal === 'approve') {
         updateData = {
           ...updateData,
@@ -95,6 +116,14 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
           verification_level: modalData.level as WorkerVerification['verification_level'],
           admin_notes: modalData.notes,
         };
+        if (isCustomTrade) {
+          if (tradeAction === 'assign' && selectedAssignedTrade) {
+            updateData.assigned_trade = selectedAssignedTrade;
+          } else if (tradeAction === 'adopt' && selectedCategoryId) {
+            updateData.adopt_trade = true;
+            updateData.adopt_category_id = selectedCategoryId;
+          }
+        }
       } else if (modal === 'reject') {
         updateData = {
           ...updateData,
@@ -330,9 +359,15 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
-                    onClick={() => { setModal('approve'); setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' }); }}
+                    onClick={() => {
+                      setModal('approve');
+                      setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' });
+                      setTradeAction('keep');
+                      setSelectedCategoryId('');
+                      setSelectedAssignedTrade('');
+                    }}
                     className="flex flex-col items-center gap-2 p-4 rounded-xl bg-success-light border border-success/20 text-success-dark hover:bg-success/10 transition-colors group"
                   >
                     <CheckCircle size={22} className="group-hover:scale-110 transition-transform" />
@@ -520,6 +555,111 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
                         ))}
                       </div>
                     </div>
+
+                    {isCustomTrade && (
+                      <div className="border border-gold-200 bg-gold-50/30 rounded-xl p-4 space-y-3">
+                        <div className="flex gap-2 text-gold-800">
+                          <AlertCircle size={16} className="text-gold-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-bold">Custom Trade Category Detected</p>
+                            <p className="text-xs text-gold-700">The trade <strong className="text-text-primary">"{application.trade_category}"</strong> is not in the standard catalog.</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-text-secondary block">Handling Action</label>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                              <input
+                                type="radio"
+                                name="tradeAction"
+                                checked={tradeAction === 'keep'}
+                                onChange={() => setTradeAction('keep')}
+                                className="text-primary focus:ring-primary"
+                              />
+                              Keep as custom trade
+                            </label>
+                            <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                              <input
+                                type="radio"
+                                name="tradeAction"
+                                checked={tradeAction === 'assign'}
+                                onChange={() => setTradeAction('assign')}
+                                className="text-primary focus:ring-primary"
+                              />
+                              Assign worker to an existing trade
+                            </label>
+                            <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                              <input
+                                type="radio"
+                                name="tradeAction"
+                                checked={tradeAction === 'adopt'}
+                                onChange={() => setTradeAction('adopt')}
+                                className="text-primary focus:ring-primary"
+                              />
+                              Adopt as a new standard trade
+                            </label>
+                          </div>
+                        </div>
+
+                        {tradeAction === 'assign' && (
+                          <div className="space-y-2 pt-2 border-t border-gold-200/50">
+                            <div>
+                              <label className="text-xs font-semibold text-text-muted block mb-1">Select Standard Category</label>
+                              <select
+                                  className="input-field py-1.5 text-xs"
+                                  value={selectedCategoryId}
+                                  onChange={(e) => {
+                                    setSelectedCategoryId(e.target.value);
+                                    setSelectedAssignedTrade('');
+                                  }}
+                                >
+                                <option value="">-- Choose Category --</option>
+                                {categories.map((cat) => (
+                                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            {selectedCategoryId && (
+                              <div>
+                                <label className="text-xs font-semibold text-text-muted block mb-1">Select Standard Trade</label>
+                                <select
+                                  className="input-field py-1.5 text-xs"
+                                  value={selectedAssignedTrade}
+                                  onChange={(e) => setSelectedAssignedTrade(e.target.value)}
+                                >
+                                  <option value="">-- Choose Trade --</option>
+                                  {categories
+                                    .find((c) => c.id === selectedCategoryId)
+                                    ?.subcategories.map((sub) => (
+                                      <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                    ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {tradeAction === 'adopt' && (
+                          <div className="space-y-2 pt-2 border-t border-gold-200/50">
+                            <div>
+                              <label className="text-xs font-semibold text-text-muted block mb-1">Adopt Under Category</label>
+                              <select
+                                className="input-field py-1.5 text-xs"
+                                value={selectedCategoryId}
+                                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                              >
+                                <option value="">-- Choose Category --</option>
+                                {categories.map((cat) => (
+                                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <label className="label">Admin Notes <span className="text-text-muted text-xs font-normal">(optional)</span></label>
                       <textarea
@@ -613,7 +753,15 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
                 <button onClick={() => setModal(null)} className="btn-secondary flex-1">Cancel</button>
                 <button
                   onClick={handleAction}
-                  disabled={submitting || (modal === 'reject' && !modalData.reason) || (modal === 'more_info' && !modalData.message)}
+                  disabled={
+                    submitting ||
+                    (modal === 'reject' && !modalData.reason) ||
+                    (modal === 'more_info' && !modalData.message) ||
+                    (modal === 'approve' && isCustomTrade && (
+                      (tradeAction === 'assign' && !selectedAssignedTrade) ||
+                      (tradeAction === 'adopt' && !selectedCategoryId)
+                    ))
+                  }
                   className={`flex-1 btn-primary justify-center
                     ${modal === 'reject' ? 'bg-error hover:bg-error-dark' :
                       modal === 'more_info' ? 'bg-gold-500 hover:bg-gold-600' : ''}`}
