@@ -46,8 +46,10 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 md:static flex-shrink-0 border-r border-neutral-100 flex flex-col transition-all duration-300
-          ${isMobileOpen ? 'translate-x-0 w-56' : '-translate-x-full md:translate-x-0'}
+        className={`z-50 border-r border-neutral-100 flex flex-col transition-all duration-300 md:static md:translate-x-0 flex-shrink-0
+          ${isMobileOpen 
+            ? 'fixed inset-y-0 left-0 w-56 translate-x-0' 
+            : 'hidden md:flex -translate-x-full'}
           ${collapsed ? 'md:w-16' : 'md:w-56'}`}
         style={{ backgroundColor: '#FFFCF8' }}
       >
