@@ -211,308 +211,302 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-5">
-          {/* ── Left column ─────────────────────────────────────── */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Profile card */}
-            <div className="card p-5">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center flex-shrink-0 shadow-primary-glow">
-                  <span className="text-white text-xl font-bold">{application.full_name.charAt(0)}</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-text-primary">{application.full_name}</h2>
-                  <p className="text-sm text-text-muted font-mono">{application.application_number}</p>
-                  {application.business_name && (
-                    <p className="text-sm text-primary font-medium">{application.business_name}</p>
-                  )}
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          {/* Profile card */}
+          <div className="card p-5 lg:col-span-2 order-2 lg:order-1 self-start w-full">
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center flex-shrink-0 shadow-primary-glow">
+                <span className="text-white text-xl font-bold">{application.full_name.charAt(0)}</span>
               </div>
-              <div className="space-y-2.5">
-                {[
-                  { Icon: Phone, value: application.phone_number },
-                  { Icon: Mail, value: application.email },
-                  { Icon: MapPin, value: `${application.current_city}, ${application.current_region}` },
-                  {
-                    Icon: Calendar,
-                    value: application.date_of_birth
-                      ? `${new Date(application.date_of_birth).toLocaleDateString('en-GH', { day: '2-digit', month: 'long', year: 'numeric' })} · ${application.gender}`
-                      : application.gender,
-                  },
-                ].map(({ Icon, value }) => (
-                  <div key={value} className="flex items-center gap-2.5 text-sm">
-                    <Icon size={15} className="text-text-muted flex-shrink-0" />
-                    <span className="text-text-primary">{value}</span>
-                  </div>
-                ))}
+              <div>
+                <h2 className="text-xl font-bold text-text-primary">{application.full_name}</h2>
+                <p className="text-sm text-text-muted font-mono">{application.application_number}</p>
+                {application.business_name && (
+                  <p className="text-sm text-primary font-medium">{application.business_name}</p>
+                )}
               </div>
             </div>
+            <div className="space-y-2.5">
+              {[
+                { Icon: Phone, value: application.phone_number },
+                { Icon: Mail, value: application.email },
+                { Icon: MapPin, value: `${application.current_city}, ${application.current_region}` },
+                {
+                  Icon: Calendar,
+                  value: application.date_of_birth
+                    ? `${new Date(application.date_of_birth).toLocaleDateString('en-GH', { day: '2-digit', month: 'long', year: 'numeric' })} · ${application.gender}`
+                    : application.gender,
+                },
+              ].map(({ Icon, value }) => (
+                <div key={value} className="flex items-center gap-2.5 text-sm">
+                  <Icon size={15} className="text-text-muted flex-shrink-0" />
+                  <span className="text-text-primary">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-            {/* Professional */}
-            <div className="card p-5">
-              <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
-                <Briefcase size={16} className="text-primary" />
-                Professional Details
+          {/* Current status banner */}
+          {application.status === 'approved' && (
+            <div className="card p-4 border border-success/30 bg-success-light/50 flex items-center gap-3 lg:col-span-3 order-1 lg:order-2 self-start w-full">
+              <CheckCircle size={22} className="text-success flex-shrink-0" />
+              <div>
+                <p className="font-bold text-success-dark">Approved — {application.verification_level} verification</p>
+                {application.admin_notes && <p className="text-sm text-text-secondary mt-0.5">{application.admin_notes}</p>}
+              </div>
+            </div>
+          )}
+          {application.status === 'rejected' && (
+            <div className="card p-4 border border-error/30 bg-error-light/50 flex items-center gap-3 lg:col-span-3 order-1 lg:order-2 self-start w-full">
+              <XCircle size={22} className="text-error flex-shrink-0" />
+              <div>
+                <p className="font-bold text-error">Rejected</p>
+                {application.rejection_reason && <p className="text-sm text-text-secondary mt-0.5">{application.rejection_reason}</p>}
+              </div>
+            </div>
+          )}
+          {application.status === 'more_info_requested' && (
+            <div className="card p-4 border border-gold-200 bg-gold-50/50 flex items-center gap-3 lg:col-span-3 order-1 lg:order-2 self-start w-full">
+              <AlertCircle size={22} className="text-gold-600 flex-shrink-0" />
+              <p className="font-bold text-gold-800">Awaiting additional documents from applicant</p>
+            </div>
+          )}
+
+          {/* Professional */}
+          <div className="card p-5 lg:col-span-2 order-5 lg:order-3 self-start w-full">
+            <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
+              <Briefcase size={16} className="text-primary" />
+              Professional Details
+            </h3>
+            <div className="space-y-2">
+              {[
+                ['Trade', application.trade_category],
+                ['Experience', `${application.years_of_experience} years`],
+                ['Submitted', new Date(application.submitted_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })],
+                ...(application.reviewed_at ? [['Reviewed', new Date(application.reviewed_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })]] : []),
+              ].map(([label, val]) => (
+                <div key={label} className="flex justify-between items-center py-1 border-b border-neutral-50 last:border-0">
+                  <span className="text-sm text-text-muted">{label}</span>
+                  <span className="text-sm font-semibold text-text-primary">{val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Admin action buttons */}
+          {!['approved', 'rejected'].includes(application.status) && (
+            <div className="card p-5 lg:col-span-3 order-3 lg:order-4 self-start w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-primary">Admin Actions</h3>
+                {application.status === 'pending' && (
+                  <button
+                    onClick={handleMarkUnderReview}
+                    className="text-xs font-semibold text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors"
+                  >
+                    Mark as Under Review
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  onClick={() => {
+                    setModal('approve');
+                    setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' });
+                    setTradeAction('keep');
+                    setSelectedCategoryId('');
+                    setSelectedAssignedTrade('');
+                  }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-success-light border border-success/20 text-success-dark hover:bg-success/10 transition-colors group"
+                >
+                  <CheckCircle size={22} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-bold">Approve</span>
+                </button>
+                <button
+                  onClick={() => { setModal('reject'); setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' }); }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-error-light border border-error/20 text-error hover:bg-error/10 transition-colors group"
+                >
+                  <XCircle size={22} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-bold">Reject</span>
+                </button>
+                <button
+                  onClick={() => { setModal('more_info'); setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' }); }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gold-50 border border-gold-200 text-gold-700 hover:bg-gold-100 transition-colors group"
+                >
+                  <AlertCircle size={22} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-bold">Request Info</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Score & Risk */}
+          <div className="card p-5 lg:col-span-2 order-6 lg:order-5 self-start w-full">
+            <ConfidenceScore score={application.confidence_score} size="md" />
+            {application.fraud_indicators && application.fraud_indicators.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-neutral-100">
+                <p className="text-xs font-semibold text-text-muted mb-2 uppercase tracking-wide">Fraud Indicators</p>
+                <FraudIndicators indicators={application.fraud_indicators} />
+              </div>
+            )}
+          </div>
+
+          {/* Documents */}
+          <div className="card p-5 lg:col-span-3 order-4 lg:order-6 self-start w-full">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-text-primary flex items-center gap-2">
+                <FileText size={16} className="text-primary" />
+                Submitted Documents
               </h3>
-              <div className="space-y-2">
-                {[
-                  ['Trade', application.trade_category],
-                  ['Experience', `${application.years_of_experience} years`],
-                  ['Submitted', new Date(application.submitted_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })],
-                  ...(application.reviewed_at ? [['Reviewed', new Date(application.reviewed_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })]] : []),
-                ].map(([label, val]) => (
-                  <div key={label} className="flex justify-between items-center py-1 border-b border-neutral-50 last:border-0">
-                    <span className="text-sm text-text-muted">{label}</span>
-                    <span className="text-sm font-semibold text-text-primary">{val}</span>
-                  </div>
-                ))}
+              <span className="text-xs text-text-muted">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {documents.length === 0 ? (
+              <div className="py-10 text-center border-2 border-dashed border-neutral-100 rounded-xl">
+                <FileImage size={28} className="text-neutral-300 mx-auto mb-2" />
+                <p className="text-sm font-medium text-text-muted">No documents uploaded</p>
+                <p className="text-xs text-text-muted mt-1">Documents submitted via the application form appear here.</p>
               </div>
-            </div>
-
-            {/* Score & Risk */}
-            <div className="card p-5">
-              <ConfidenceScore score={application.confidence_score} size="md" />
-              {application.fraud_indicators && application.fraud_indicators.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-neutral-100">
-                  <p className="text-xs font-semibold text-text-muted mb-2 uppercase tracking-wide">Fraud Indicators</p>
-                  <FraudIndicators indicators={application.fraud_indicators} />
-                </div>
-              )}
-            </div>
-
-            {/* References */}
-            {references.length > 0 && (
-              <div className="card p-5">
-                <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
-                  <User size={16} className="text-primary" />
-                  References ({references.length})
-                </h3>
-                <div className="space-y-3">
-                  {references.map((ref) => (
-                    <div key={ref.id} className="p-3 bg-neutral-50 rounded-xl">
-                      <p className="text-sm font-semibold text-text-primary">{ref.reference_name}</p>
-                      <p className="text-xs text-text-muted">{ref.relationship} · {ref.phone_number}</p>
+            ) : (
+              <div className="space-y-5">
+                {docTypeOrder
+                  .filter(type => docsByType[type]?.length > 0)
+                  .map((type) => (
+                    <div key={type}>
+                      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
+                        {docTypeLabels[type]}
+                        <span className="ml-1.5 text-text-light font-normal normal-case">({docsByType[type].length})</span>
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {docsByType[type].map((doc) => (
+                          <div key={doc.id} className="group relative">
+                            {isImage(doc) ? (
+                              <div
+                                className="aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 border border-neutral-100 cursor-pointer"
+                                onClick={() => setPreviewUrl(doc.file_url)}
+                              >
+                                <img
+                                  src={doc.file_url}
+                                  alt={doc.file_name || docTypeLabels[type]}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                  <span className="text-white text-xs font-semibold bg-black/40 px-2 py-1 rounded-lg">View</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="aspect-[4/3] rounded-xl border border-neutral-100 bg-neutral-50 flex flex-col items-center justify-center gap-2 hover:bg-neutral-100 transition-colors cursor-pointer"
+                              >
+                                <FileIcon size={24} className="text-error" />
+                                <span className="text-xs text-text-muted font-medium">PDF</span>
+                              </a>
+                            )}
+                            <div className="flex items-center justify-between mt-1.5 px-0.5">
+                              <p className="text-xs text-text-muted truncate max-w-[80%]">{doc.file_name || 'Document'}</p>
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:text-primary-dark flex-shrink-0"
+                                title="Open in new tab"
+                              >
+                                <ExternalLink size={12} />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Admin notes / rejection reason */}
-            {(application.admin_notes || application.rejection_reason) && (
-              <div className={`card p-4 border-l-4 ${application.status === 'rejected' ? 'border-error' : 'border-primary'}`}>
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                  {application.status === 'rejected' ? 'Rejection Reason' : 'Admin Notes'}
-                </p>
-                <p className="text-sm text-text-secondary">
-                  {application.rejection_reason || application.admin_notes}
-                </p>
-              </div>
-            )}
-            {application.more_info_message && (
-              <div className="card p-4 border-l-4 border-gold-500">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Request Message</p>
-                <p className="text-sm text-text-secondary">{application.more_info_message}</p>
               </div>
             )}
           </div>
 
-          {/* ── Right column ────────────────────────────────────── */}
-          <div className="lg:col-span-3 space-y-4">
-            {/* Current status banner */}
-            {application.status === 'approved' && (
-              <div className="card p-4 border border-success/30 bg-success-light/50 flex items-center gap-3">
-                <CheckCircle size={22} className="text-success flex-shrink-0" />
-                <div>
-                  <p className="font-bold text-success-dark">Approved — {application.verification_level} verification</p>
-                  {application.admin_notes && <p className="text-sm text-text-secondary mt-0.5">{application.admin_notes}</p>}
-                </div>
-              </div>
-            )}
-            {application.status === 'rejected' && (
-              <div className="card p-4 border border-error/30 bg-error-light/50 flex items-center gap-3">
-                <XCircle size={22} className="text-error flex-shrink-0" />
-                <div>
-                  <p className="font-bold text-error">Rejected</p>
-                  {application.rejection_reason && <p className="text-sm text-text-secondary mt-0.5">{application.rejection_reason}</p>}
-                </div>
-              </div>
-            )}
-            {application.status === 'more_info_requested' && (
-              <div className="card p-4 border border-gold-200 bg-gold-50/50 flex items-center gap-3">
-                <AlertCircle size={22} className="text-gold-600 flex-shrink-0" />
-                <p className="font-bold text-gold-800">Awaiting additional documents from applicant</p>
-              </div>
-            )}
-
-            {/* Admin action buttons */}
-            {!['approved', 'rejected'].includes(application.status) && (
-              <div className="card p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-text-primary">Admin Actions</h3>
-                  {application.status === 'pending' && (
-                    <button
-                      onClick={handleMarkUnderReview}
-                      className="text-xs font-semibold text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors"
-                    >
-                      Mark as Under Review
-                    </button>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => {
-                      setModal('approve');
-                      setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' });
-                      setTradeAction('keep');
-                      setSelectedCategoryId('');
-                      setSelectedAssignedTrade('');
-                    }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-success-light border border-success/20 text-success-dark hover:bg-success/10 transition-colors group"
-                  >
-                    <CheckCircle size={22} className="group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold">Approve</span>
-                  </button>
-                  <button
-                    onClick={() => { setModal('reject'); setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' }); }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-error-light border border-error/20 text-error hover:bg-error/10 transition-colors group"
-                  >
-                    <XCircle size={22} className="group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold">Reject</span>
-                  </button>
-                  <button
-                    onClick={() => { setModal('more_info'); setModalData({ level: 'identity', notes: '', reason: '', message: '', docs: '' }); }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gold-50 border border-gold-200 text-gold-700 hover:bg-gold-100 transition-colors group"
-                  >
-                    <AlertCircle size={22} className="group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold">Request Info</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Documents */}
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-text-primary flex items-center gap-2">
-                  <FileText size={16} className="text-primary" />
-                  Submitted Documents
-                </h3>
-                <span className="text-xs text-text-muted">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
-              </div>
-
-              {documents.length === 0 ? (
-                <div className="py-10 text-center border-2 border-dashed border-neutral-100 rounded-xl">
-                  <FileImage size={28} className="text-neutral-300 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-text-muted">No documents uploaded</p>
-                  <p className="text-xs text-text-muted mt-1">Documents submitted via the application form appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {docTypeOrder
-                    .filter(type => docsByType[type]?.length > 0)
-                    .map((type) => (
-                      <div key={type}>
-                        <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-                          {docTypeLabels[type]}
-                          <span className="ml-1.5 text-text-light font-normal normal-case">({docsByType[type].length})</span>
-                        </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {docsByType[type].map((doc) => (
-                            <div key={doc.id} className="group relative">
-                              {isImage(doc) ? (
-                                <div
-                                  className="aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 border border-neutral-100 cursor-pointer"
-                                  onClick={() => setPreviewUrl(doc.file_url)}
-                                >
-                                  <img
-                                    src={doc.file_url}
-                                    alt={doc.file_name || docTypeLabels[type]}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                      (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                    <span className="text-white text-xs font-semibold bg-black/40 px-2 py-1 rounded-lg">View</span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <a
-                                  href={doc.file_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="aspect-[4/3] rounded-xl border border-neutral-100 bg-neutral-50 flex flex-col items-center justify-center gap-2 hover:bg-neutral-100 transition-colors cursor-pointer"
-                                >
-                                  <FileIcon size={24} className="text-error" />
-                                  <span className="text-xs text-text-muted font-medium">PDF</span>
-                                </a>
-                              )}
-                              <div className="flex items-center justify-between mt-1.5 px-0.5">
-                                <p className="text-xs text-text-muted truncate max-w-[80%]">{doc.file_name || 'Document'}</p>
-                                <a
-                                  href={doc.file_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-primary hover:text-primary-dark flex-shrink-0"
-                                  title="Open in new tab"
-                                >
-                                  <ExternalLink size={12} />
-                                </a>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-
-            {/* Audit trail */}
-            <div className="card p-5">
+          {/* References */}
+          {references.length > 0 && (
+            <div className="card p-5 lg:col-span-2 order-7 lg:order-7 self-start w-full">
               <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
-                <Shield size={16} className="text-primary" />
-                Activity Log
+                <User size={16} className="text-primary" />
+                References ({references.length})
               </h3>
-              {auditLogs.length === 0 ? (
-                <p className="text-sm text-text-muted text-center py-4">No activity yet</p>
-              ) : (
-                <div>
-                  {auditLogs.map((log, i) => {
-                    const cfg = auditActionConfig[log.action] || auditActionConfig.status_changed;
-                    const Icon = cfg.Icon;
-                    return (
-                      <div key={log.id} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white ${cfg.color}`}>
-                            <Icon size={13} />
-                          </div>
-                          {i < auditLogs.length - 1 && <div className="w-0.5 h-4 bg-neutral-100 my-1" />}
-                        </div>
-                        <div className="pb-3 min-w-0">
-                          <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-text-primary">{cfg.label}</span>
-                            {log.admin_name && (
-                              <span className="text-xs text-text-muted">by {log.admin_name}</span>
-                            )}
-                          </div>
-                          {log.notes && <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{log.notes}</p>}
-                          <p className="text-xs text-text-muted mt-0.5">
-                            {new Date(log.created_at).toLocaleString('en-GH', {
-                              day: '2-digit', month: 'short', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <div className="space-y-3">
+                {references.map((ref) => (
+                  <div key={ref.id} className="p-3 bg-neutral-50 rounded-xl">
+                    <p className="text-sm font-semibold text-text-primary">{ref.reference_name}</p>
+                    <p className="text-xs text-text-muted">{ref.relationship} · {ref.phone_number}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Audit trail */}
+          <div className="card p-5 lg:col-span-3 order-8 lg:order-8 self-start w-full">
+            <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
+              <Shield size={16} className="text-primary" />
+              Activity Log
+            </h3>
+            {auditLogs.length === 0 ? (
+              <p className="text-sm text-text-muted text-center py-4">No activity yet</p>
+            ) : (
+              <div>
+                {auditLogs.map((log, i) => {
+                  const cfg = auditActionConfig[log.action] || auditActionConfig.status_changed;
+                  const Icon = cfg.Icon;
+                  return (
+                    <div key={log.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white ${cfg.color}`}>
+                          <Icon size={13} />
+                        </div>
+                        {i < auditLogs.length - 1 && <div className="w-0.5 h-4 bg-neutral-100 my-1" />}
+                      </div>
+                      <div className="pb-3 min-w-0">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-text-primary">{cfg.label}</span>
+                          {log.admin_name && (
+                            <span className="text-xs text-text-muted">by {log.admin_name}</span>
+                          )}
+                        </div>
+                        {log.notes && <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{log.notes}</p>}
+                        <p className="text-xs text-text-muted mt-0.5">
+                          {new Date(log.created_at).toLocaleString('en-GH', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
+          {/* Admin notes / rejection reason */}
+          {(application.admin_notes || application.rejection_reason) && (
+            <div className={`card p-4 border-l-4 lg:col-span-2 order-9 lg:order-9 self-start w-full ${application.status === 'rejected' ? 'border-error' : 'border-primary'}`}>
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                {application.status === 'rejected' ? 'Rejection Reason' : 'Admin Notes'}
+              </p>
+              <p className="text-sm text-text-secondary">
+                {application.rejection_reason || application.admin_notes}
+              </p>
+            </div>
+          )}
+          {application.more_info_message && (
+            <div className="card p-4 border-l-4 border-gold-500 lg:col-span-2 order-10 lg:order-10 self-start w-full">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Request Message</p>
+              <p className="text-sm text-text-secondary">{application.more_info_message}</p>
+            </div>
+          )}
         </div>
       </div>
 

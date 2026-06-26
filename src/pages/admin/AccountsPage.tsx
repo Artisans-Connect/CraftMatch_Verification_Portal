@@ -163,68 +163,131 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <p className="text-text-muted">No accounts found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-neutral-100" style={{ backgroundColor: '#FFF8F0' }}>
-                  <tr>
-                    <th className="table-header">Account</th>
-                    <th className="table-header">Role</th>
-                    <th className="table-header hidden md:table-cell">Worker</th>
-                    <th className="table-header">Status</th>
-                    <th className="table-header hidden lg:table-cell">Created</th>
-                    <th className="table-header">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-50">
-                  {accounts.map((account) => {
-                    const worker = workerFrom(account);
-                    return (
-                      <tr key={account.id} className="hover:bg-neutral-50">
-                        <td className="table-cell">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                              {(account.full_name || account.auth_user?.email || 'A').charAt(0).toUpperCase()}
+            <div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-neutral-100" style={{ backgroundColor: '#FFF8F0' }}>
+                    <tr>
+                      <th className="table-header">Account</th>
+                      <th className="table-header">Role</th>
+                      <th className="table-header hidden md:table-cell">Worker</th>
+                      <th className="table-header">Status</th>
+                      <th className="table-header hidden lg:table-cell">Created</th>
+                      <th className="table-header">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-50">
+                    {accounts.map((account) => {
+                      const worker = workerFrom(account);
+                      return (
+                        <tr key={account.id} className="hover:bg-neutral-50">
+                          <td className="table-cell">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold">
+                                {(account.full_name || account.auth_user?.email || 'A').charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-text-primary">{account.full_name || 'Unnamed account'}</p>
+                                <p className="text-xs text-text-muted">{account.auth_user?.email || account.phone || account.id}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-text-primary">{account.full_name || 'Unnamed account'}</p>
-                              <p className="text-xs text-text-muted">{account.auth_user?.email || account.phone || account.id}</p>
-                            </div>
+                          </td>
+                          <td className="table-cell capitalize">{displayRole(account)}</td>
+                          <td className="table-cell hidden md:table-cell">
+                            {worker ? (
+                              <div className="space-y-1">
+                                <span className={`badge ${worker.is_verified ? 'badge-approved' : 'badge-pending'}`}>
+                                  {worker.is_verified ? 'Verified' : 'Unverified'}
+                                </span>
+                                <p className="text-xs text-text-muted">
+                                  {worker.is_available ? 'Available' : 'Unavailable'} · {worker.total_jobs ?? 0} jobs
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-text-muted">Client only</span>
+                            )}
+                          </td>
+                          <td className="table-cell">
+                            <span className={`badge ${account.account_status === 'active' ? 'badge-approved' : 'badge-rejected'}`}>
+                              {account.account_status}
+                            </span>
+                          </td>
+                          <td className="table-cell hidden lg:table-cell">
+                            {new Date(account.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="table-cell">
+                            <button className="btn-ghost" onClick={() => openAccount(account.id)}>
+                              <Eye size={16} />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="block md:hidden divide-y divide-neutral-100">
+                {accounts.map((account) => {
+                  const worker = workerFrom(account);
+                  return (
+                    <div
+                      key={account.id}
+                      className="p-4 hover:bg-neutral-50 flex flex-col gap-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {(account.full_name || account.auth_user?.email || 'A').charAt(0).toUpperCase()}
                           </div>
-                        </td>
-                        <td className="table-cell capitalize">{displayRole(account)}</td>
-                        <td className="table-cell hidden md:table-cell">
+                          <div>
+                            <p className="font-semibold text-text-primary text-sm">{account.full_name || 'Unnamed account'}</p>
+                            <p className="text-xs text-text-muted break-all">{account.auth_user?.email || account.phone || account.id}</p>
+                          </div>
+                        </div>
+                        <span className={`badge ${account.account_status === 'active' ? 'badge-approved' : 'badge-rejected'}`}>
+                          {account.account_status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Role</p>
+                          <p className="font-semibold text-text-primary capitalize">{displayRole(account)}</p>
+                        </div>
+                        <div>
+                          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Worker Status</p>
                           {worker ? (
-                            <div className="space-y-1">
-                              <span className={`badge ${worker.is_verified ? 'badge-approved' : 'badge-pending'}`}>
+                            <div>
+                              <span className={`badge ${worker.is_verified ? 'badge-approved' : 'badge-pending'} scale-90 origin-left`}>
                                 {worker.is_verified ? 'Verified' : 'Unverified'}
                               </span>
-                              <p className="text-xs text-text-muted">
+                              <p className="text-[10px] text-text-muted mt-0.5">
                                 {worker.is_available ? 'Available' : 'Unavailable'} · {worker.total_jobs ?? 0} jobs
                               </p>
                             </div>
                           ) : (
-                            <span className="text-xs text-text-muted">Client only</span>
+                            <span className="text-text-muted">Client only</span>
                           )}
-                        </td>
-                        <td className="table-cell">
-                          <span className={`badge ${account.account_status === 'active' ? 'badge-approved' : 'badge-rejected'}`}>
-                            {account.account_status}
-                          </span>
-                        </td>
-                        <td className="table-cell hidden lg:table-cell">
-                          {new Date(account.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td className="table-cell">
-                          <button className="btn-ghost" onClick={() => openAccount(account.id)}>
-                            <Eye size={16} />
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs pt-2 border-t border-neutral-100">
+                        <span className="text-text-muted">
+                          Created: {new Date(account.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                        <button className="btn-ghost py-1 px-2.5 h-auto text-xs" onClick={() => openAccount(account.id)}>
+                          <Eye size={14} />
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -111,7 +111,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="border-b border-neutral-100 px-6 py-4 flex items-center justify-between"
+        <header className="border-b border-neutral-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between"
           style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-3">
             <button
@@ -140,7 +140,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: '#FFF8F0' }}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ backgroundColor: '#FFF8F0' }}>
           {children}
         </main>
       </div>

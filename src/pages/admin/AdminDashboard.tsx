@@ -108,7 +108,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {statCards.map((card, i) => {
             const Icon = card.icon;
             return (
-              <div key={i} className={`card p-5 border ${card.border}`}>
+              <div key={i} className={`card p-4 sm:p-5 border ${card.border}`}>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-text-secondary">{card.label}</span>
                   <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center`}>
@@ -233,7 +233,8 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               View all
             </button>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-neutral-100" style={{ backgroundColor: '#FFF8F0' }}>
                 <tr>
@@ -280,6 +281,45 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="block md:hidden divide-y divide-neutral-100">
+            {recentApplications.map((app) => (
+              <div
+                key={app.id}
+                onClick={() => onNavigate('application_detail', app)}
+                className="p-4 hover:bg-neutral-50 cursor-pointer transition-colors active:bg-neutral-100 flex flex-col gap-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-bold">{app.full_name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-text-primary text-sm">{app.full_name}</p>
+                      <p className="text-[10px] text-text-muted font-mono">{app.application_number}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${app.confidence_score >= 80 ? 'text-success-dark bg-success-light' : app.confidence_score >= 60 ? 'text-gold-600 bg-gold-50' : 'text-error bg-error-light/50'}`}>
+                      Score: {app.confidence_score}
+                    </span>
+                    <StatusBadge status={app.status} size="sm" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-xs text-text-secondary">
+                  <div>
+                    <span className="font-semibold text-text-primary">{app.trade_category}</span>
+                    <span className="mx-1.5 text-neutral-300">•</span>
+                    <span>{app.current_city}</span>
+                  </div>
+                  <span className="text-text-muted">
+                    {new Date(app.submitted_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short' })}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

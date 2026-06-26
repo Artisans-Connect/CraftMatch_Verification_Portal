@@ -135,75 +135,134 @@ export function ApplicationsTable({ onNavigate, currentPage = 'applications', fi
               <p className="text-sm text-text-muted mt-1">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-neutral-100" style={{ backgroundColor: '#FFF8F0' }}>
-                  <tr>
-                    <th className="table-header">Applicant</th>
-                    <th className="table-header">Category</th>
-                    <th className="table-header hidden md:table-cell">Location</th>
-                    <th className="table-header hidden lg:table-cell">Submitted</th>
-                    <th className="table-header">Status</th>
-                    <th className="table-header hidden sm:table-cell">Score</th>
-                    <th className="table-header hidden lg:table-cell">Risk</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-50">
-                  {filtered.map((app) => (
-                    <tr
-                      key={app.id}
-                      onClick={() => onNavigate('application_detail', app)}
-                      className="hover:bg-primary-50/30 cursor-pointer transition-colors"
-                    >
-                      <td className="table-cell">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-xs font-bold">{app.full_name.charAt(0)}</span>
+            <div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-neutral-100" style={{ backgroundColor: '#FFF8F0' }}>
+                    <tr>
+                      <th className="table-header">Applicant</th>
+                      <th className="table-header">Category</th>
+                      <th className="table-header hidden md:table-cell">Location</th>
+                      <th className="table-header hidden lg:table-cell">Submitted</th>
+                      <th className="table-header">Status</th>
+                      <th className="table-header hidden sm:table-cell">Score</th>
+                      <th className="table-header hidden lg:table-cell">Risk</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-50">
+                    {filtered.map((app) => (
+                      <tr
+                        key={app.id}
+                        onClick={() => onNavigate('application_detail', app)}
+                        className="hover:bg-primary-50/30 cursor-pointer transition-colors"
+                      >
+                        <td className="table-cell">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-bold">{app.full_name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-text-primary text-sm">{app.full_name}</p>
+                              <p className="text-xs text-text-muted font-mono">{app.application_number}</p>
+                            </div>
                           </div>
+                        </td>
+                        <td className="table-cell">
                           <div>
-                            <p className="font-semibold text-text-primary text-sm">{app.full_name}</p>
-                            <p className="text-xs text-text-muted font-mono">{app.application_number}</p>
+                            <p className="text-sm font-medium text-text-primary">{app.trade_category}</p>
+                            <LevelBadge level={app.verification_level} />
                           </div>
+                        </td>
+                        <td className="table-cell hidden md:table-cell">
+                          <p className="text-sm text-text-primary">{app.current_city}</p>
+                          <p className="text-xs text-text-muted">{app.current_region}</p>
+                        </td>
+                        <td className="table-cell hidden lg:table-cell">
+                          <p className="text-sm">{new Date(app.submitted_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                        </td>
+                        <td className="table-cell">
+                          <StatusBadge status={app.status} size="sm" />
+                        </td>
+                        <td className="table-cell hidden sm:table-cell">
+                          <span className={`text-sm font-bold ${
+                            app.confidence_score >= 80 ? 'text-success-dark' :
+                            app.confidence_score >= 60 ? 'text-gold-600' : 'text-error'
+                          }`}>
+                            {app.confidence_score}/100
+                          </span>
+                        </td>
+                        <td className="table-cell hidden lg:table-cell">
+                          {app.fraud_indicators && app.fraud_indicators.length > 0 ? (
+                            <div className="flex items-center gap-1 text-error">
+                              <AlertTriangle size={14} />
+                              <span className="text-xs font-semibold">{app.fraud_indicators.length} flag(s)</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-success-dark font-medium">Clean</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="block md:hidden divide-y divide-neutral-100">
+                {filtered.map((app) => (
+                  <div
+                    key={app.id}
+                    onClick={() => onNavigate('application_detail', app)}
+                    className="p-4 hover:bg-primary-50/30 cursor-pointer transition-colors active:bg-neutral-100 flex flex-col gap-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">{app.full_name.charAt(0)}</span>
                         </div>
-                      </td>
-                      <td className="table-cell">
                         <div>
-                          <p className="text-sm font-medium text-text-primary">{app.trade_category}</p>
-                          <LevelBadge level={app.verification_level} />
+                          <p className="font-semibold text-text-primary text-sm">{app.full_name}</p>
+                          <p className="text-xs text-text-muted font-mono">{app.application_number}</p>
                         </div>
-                      </td>
-                      <td className="table-cell hidden md:table-cell">
-                        <p className="text-sm text-text-primary">{app.current_city}</p>
-                        <p className="text-xs text-text-muted">{app.current_region}</p>
-                      </td>
-                      <td className="table-cell hidden lg:table-cell">
-                        <p className="text-sm">{new Date(app.submitted_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                      </td>
-                      <td className="table-cell">
-                        <StatusBadge status={app.status} size="sm" />
-                      </td>
-                      <td className="table-cell hidden sm:table-cell">
-                        <span className={`text-sm font-bold ${
-                          app.confidence_score >= 80 ? 'text-success-dark' :
-                          app.confidence_score >= 60 ? 'text-gold-600' : 'text-error'
-                        }`}>
+                      </div>
+                      <StatusBadge status={app.status} size="sm" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Trade & Level</p>
+                        <p className="font-semibold text-text-primary">{app.trade_category}</p>
+                        <div className="mt-0.5"><LevelBadge level={app.verification_level} /></div>
+                      </div>
+                      <div>
+                        <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Location</p>
+                        <p className="font-medium text-text-primary">{app.current_city}</p>
+                        <p className="text-[10px] text-text-muted">{app.current_region}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-2 border-t border-neutral-100">
+                      <div>
+                        <span className="text-text-muted">Score: </span>
+                        <span className={`font-bold ${app.confidence_score >= 80 ? 'text-success-dark' : app.confidence_score >= 60 ? 'text-gold-600' : 'text-error'}`}>
                           {app.confidence_score}/100
                         </span>
-                      </td>
-                      <td className="table-cell hidden lg:table-cell">
+                      </div>
+                      <div>
                         {app.fraud_indicators && app.fraud_indicators.length > 0 ? (
                           <div className="flex items-center gap-1 text-error">
-                            <AlertTriangle size={14} />
-                            <span className="text-xs font-semibold">{app.fraud_indicators.length} flag(s)</span>
+                            <AlertTriangle size={12} />
+                            <span className="font-semibold">{app.fraud_indicators.length} flag(s)</span>
                           </div>
                         ) : (
-                          <span className="text-xs text-success-dark font-medium">Clean</span>
+                          <span className="text-success-dark font-medium">Clean</span>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
