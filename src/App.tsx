@@ -10,6 +10,7 @@ import { ServiceCatalogPage } from './pages/admin/ServiceCatalogPage';
 import { AccountsPage } from './pages/admin/AccountsPage';
 import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
+import { SupportHub } from './pages/SupportHub';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
 import { apiPost } from './lib/api';
@@ -30,7 +31,17 @@ type Page =
   | 'accounts'
   | 'settings'
   | 'email_verified'
-  | 'update_password';
+  | 'update_password'
+  | 'about'
+  | 'faq'
+  | 'contact'
+  | 'safety'
+  | 'report_abuse'
+  | 'terms'
+  | 'privacy'
+  | 'cookie_policy'
+  | 'dispute_policy'
+  | 'cancellation_policy';
 
 const filterMap: Record<string, VerificationStatus | null> = {
   pending: 'pending',
@@ -51,6 +62,16 @@ function getInitialPage(): Page {
   if (hash.startsWith('/portal/admin')) return 'dashboard';
   if (hash.startsWith('/apply')) return 'apply';
   if (hash.startsWith('/status')) return 'status';
+  if (hash.startsWith('/about')) return 'about';
+  if (hash.startsWith('/faq')) return 'faq';
+  if (hash.startsWith('/contact')) return 'contact';
+  if (hash.startsWith('/safety')) return 'safety';
+  if (hash.startsWith('/report-abuse')) return 'report_abuse';
+  if (hash.startsWith('/terms')) return 'terms';
+  if (hash.startsWith('/privacy')) return 'privacy';
+  if (hash.startsWith('/cookie-policy')) return 'cookie_policy';
+  if (hash.startsWith('/dispute-policy')) return 'dispute_policy';
+  if (hash.startsWith('/cancellation-policy')) return 'cancellation_policy';
   return 'home';
 }
 
@@ -91,6 +112,16 @@ export default function App() {
       audits: '/portal/admin/audits',
       settings: '/portal/admin/settings',
       update_password: '/update-password',
+      about: '/about',
+      faq: '/faq',
+      contact: '/contact',
+      safety: '/safety',
+      report_abuse: '/report-abuse',
+      terms: '/terms',
+      privacy: '/privacy',
+      cookie_policy: '/cookie-policy',
+      dispute_policy: '/dispute-policy',
+      cancellation_policy: '/cancellation-policy',
     };
     const route = routeByPage[targetPage as Page];
     if (route) window.location.hash = route;
@@ -140,6 +171,10 @@ export default function App() {
 
     if (page === 'update_password') {
       return <UpdatePasswordPage />;
+    }
+
+    if (['about', 'faq', 'contact', 'safety', 'report_abuse', 'terms', 'privacy', 'cookie_policy', 'dispute_policy', 'cancellation_policy'].includes(page)) {
+      return <SupportHub activeTab={page} onNavigate={navigate} />;
     }
 
     return <LandingPage onNavigate={navigate} />;
