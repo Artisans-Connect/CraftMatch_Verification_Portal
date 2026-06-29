@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   Info, HelpCircle, Mail, Shield, AlertTriangle, FileText,
-  HeartHandshake, XCircle, Send, ChevronDown, Search, CheckCircle, UploadCloud, ArrowRight
+  HeartHandshake, XCircle, Send, ChevronDown, Search, CheckCircle, UploadCloud
 } from 'lucide-react';
 import { PublicLayout } from '../components/layout/PublicLayout';
+import { supportConfig } from '../lib/supportConfig';
 
 interface SupportHubProps {
   activeTab: string;
@@ -67,8 +68,8 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
   // FAQ List Data
   const faqs = [
     {
-      q: 'What is CraftMatch?',
-      a: 'CraftMatch is a verified marketplace platform connecting clients in Ghana with qualified, trust-screened local artisans. The platform makes it easy to find, message, and book skilled trades professionals, from carpenters and painters to tailor and beauty experts.',
+      q: `What is ${supportConfig.company_name}?`,
+      a: `${supportConfig.company_name} is a verified marketplace platform connecting clients in Ghana with qualified, trust-screened local artisans. The platform makes it easy to find, message, and book skilled trades professionals, from carpenters and painters to tailors and beauty experts.`,
       cat: 'general'
     },
     {
@@ -77,8 +78,8 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
       cat: 'general'
     },
     {
-      q: 'Is CraftMatch an academic or educational project?',
-      a: 'Yes, CraftMatch is currently a Final Year Project designed and developed by a dedicated team of student engineers (Peniel, Kwabena, and Nhyira). It represents a high-standard educational prototype built to address trust and reliability challenges in Ghana\'s informal labor market.',
+      q: `Is ${supportConfig.company_name} an academic or educational project?`,
+      a: `${supportConfig.company_name} is currently a Final Year Project designed and developed by a dedicated team of student engineers (Peniel, Kwabena, and Nhyira). It represents a high-standard educational prototype built to address trust and reliability challenges in Ghana\'s informal labor market.`,
       cat: 'general'
     },
     {
@@ -92,8 +93,8 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
       cat: 'client'
     },
     {
-      q: 'Are artisans on CraftMatch employees of the company?',
-      a: 'No. Verified artisans are independent contractors. CraftMatch acts as an escrow-secure marketplace and verification portal, but does not employ, schedule, or supervise the artisans.',
+      q: `Are artisans on ${supportConfig.company_name} employees of the company?`,
+      a: `No. Verified artisans are independent contractors. ${supportConfig.company_name} acts as an escrow-secure marketplace and verification portal, but does not employ, schedule, or supervise the artisans.`,
       cat: 'client'
     },
     {
@@ -127,7 +128,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
         {/* Header section */}
         <div className="mb-10 text-center md:text-left">
           <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">Support & Legal Portal</h1>
-          <p className="mt-2 text-sm text-text-muted">Find documentation, safety guidelines, and support tools for the CraftMatch platform.</p>
+          <p className="mt-2 text-sm text-text-muted">Find documentation, safety guidelines, and support tools for the {supportConfig.company_name} platform.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -194,27 +195,23 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   <div className="w-12 h-12 rounded-2xl bg-primary-50 flex items-center justify-center text-primary flex-shrink-0">
                     <Info size={24} />
                   </div>
-                  <h2 className="text-2xl font-bold text-text-primary">About CraftMatch</h2>
+                  <h2 className="text-2xl font-bold text-text-primary">About {supportConfig.company_name}</h2>
                 </div>
                 
                 <p className="leading-relaxed">
-                  CraftMatch is Ghana's premier artisan verification portal and marketplace network. Born out of a mission to sanitize the local skilled trades industry, CraftMatch addresses the critical issue of trust, reliability, and security between homeowners/businesses and local artisans.
+                  {supportConfig.company_name} is Ghana's premier artisan verification portal and marketplace network. Born out of a mission to sanitize the local skilled trades industry, {supportConfig.company_name} addresses the critical issue of trust, reliability, and security between homeowners/businesses and local artisans.
                 </p>
 
                 <div className="border-l-4 border-primary bg-primary-50/30 p-4 rounded-r-xl my-6">
                   <h4 className="font-bold text-text-primary text-sm mb-1">🎓 Educational Project Notice</h4>
                   <p className="text-xs">
-                    CraftMatch is designed and developed as a **Final Year Project** by student developers. It serves as an advanced prototype and research artifact aimed at testing labor formalization theories and secure digital transaction escrow models in West Africa.
+                    {supportConfig.company_name} is designed and developed as a **Final Year Project** by student developers. It serves as an advanced prototype and research artifact aimed at testing labor formalization theories and secure digital transaction escrow models in West Africa.
                   </p>
                 </div>
 
                 <h3 className="text-lg font-bold text-text-primary mt-6 mb-3">Our Core Team</h3>
                 <div className="grid sm:grid-cols-3 gap-4 mt-2">
-                  {[
-                    { name: 'Peniel', role: 'Database & Supabase Engineer', desc: 'Maintains storage, row-level security, and realtime syncing.' },
-                    { name: 'Kwabena', role: 'Express API Developer', desc: 'Owns backend server controllers, auth validation, and catalog logic.' },
-                    { name: 'Nhyira', role: 'Flutter Mobile Developer', desc: 'Designs customer & worker app layouts, and maps notifications.' }
-                  ].map(member => (
+                  {supportConfig.team_members.map(member => (
                     <div key={member.name} className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
                       <p className="font-bold text-text-primary">{member.name}</p>
                       <p className="text-xs text-primary font-semibold mb-2">{member.role}</p>
@@ -322,7 +319,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                     </div>
                     <h3 className="font-bold text-text-primary text-lg">Message Submitted Successfully</h3>
                     <p className="text-xs text-text-secondary">
-                      Thank you for contacting CraftMatch. We have received your query. A support ticket has been created:
+                      Thank you for contacting {supportConfig.company_name}. We have received your query. A support ticket has been created:
                     </p>
                     <div className="p-2 bg-white rounded-lg border font-mono text-sm font-bold text-primary">
                       {contactTicket}
@@ -411,16 +408,15 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                       <h4 className="font-bold text-text-primary text-sm mb-2">Direct Contact Channels</h4>
                       <div>
                         <p className="font-semibold text-text-primary mb-0.5">Primary Support Email</p>
-                        <a href="mailto:support@craftmatch.com" className="text-primary hover:underline">support@craftmatch.com</a>
+                        <a href={`mailto:${supportConfig.support_email}`} className="text-primary hover:underline">{supportConfig.support_email}</a>
                       </div>
                       <div>
                         <p className="font-semibold text-text-primary mb-0.5">Developer Escalations</p>
-                        <a href="mailto:craftmatch.assist@gmail.com" className="text-primary hover:underline">craftmatch.assist@gmail.com</a>
+                        <a href={`mailto:${supportConfig.escalation_email}`} className="text-primary hover:underline">{supportConfig.escalation_email}</a>
                       </div>
                       <div className="pt-2 border-t">
                         <p className="font-semibold text-text-primary mb-0.5">Campus Project Office</p>
-                        <p className="text-text-muted">University of Ghana, Legon Campus</p>
-                        <p className="text-text-muted">Accra, Ghana</p>
+                        <p className="text-text-muted">{supportConfig.office_address}</p>
                       </div>
                     </div>
                   </div>
@@ -439,7 +435,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                 </div>
 
                 <p className="leading-relaxed">
-                  At CraftMatch, keeping both clients and artisans safe is our top priority. We operate an offline-fulfilled marketplace, meaning jobs are completed face-to-face. We advise all users to adhere to the following safety precautions.
+                  At {supportConfig.company_name}, keeping both clients and artisans safe is our top priority. We operate an offline-fulfilled marketplace, meaning jobs are completed face-to-face. We advise all users to adhere to the following safety precautions.
                 </p>
 
                 <div className="grid md:grid-cols-2 gap-6 my-6">
@@ -614,14 +610,14 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Terms of Service</h2>
-                    <p className="text-[10px] text-text-muted">Last updated: 2026-06-06</p>
+                    <p className="text-[10px] text-text-muted">Last updated: {supportConfig.last_updated}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="font-bold text-text-primary text-sm">1. Introduction</h3>
                   <p>
-                    Welcome to CraftMatch (“Company”, “we”, “our”, “us”)! These Terms of Service (“Terms”, “Terms of Service”) govern your use of our website located at craftmatch.com (together or individually “Service”) operated by CraftMatch.
+                    Welcome to {supportConfig.company_name} (“Company”, “we”, “our”, “us”)! These Terms of Service (“Terms”, “Terms of Service”) govern your use of our website located at {supportConfig.domain_name} (together or individually “Service”) operated by {supportConfig.company_name}.
                   </p>
                   <p>
                     Our Privacy Policy also governs your use of our Service and explains how we collect, safeguard and disclose information that results from your use of our web pages.
@@ -630,12 +626,12 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                     Your agreement with us includes these Terms and our Privacy Policy (“Agreements”). You acknowledge that you have read and understood Agreements, and agree to be bound of them.
                   </p>
                   <p>
-                    If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at support@craftmatch.com so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service.
+                    If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at {supportConfig.support_email} so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">2. Communications</h3>
                   <p>
-                    By using our Service, you agree to subscribe to newsletters, marketing or promotional materials and other information we may send. However, you may opt out of receiving any, or all, of these communications from us by following the unsubscribe link or by emailing at support@craftmatch.com.
+                    By using our Service, you agree to subscribe to newsletters, marketing or promotional materials and other information we may send. However, you may opt out of receiving any, or all, of these communications from us by following the unsubscribe link or by emailing at {supportConfig.support_email}.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">3. Prohibited Uses</h3>
@@ -650,7 +646,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                   <h3 className="font-bold text-text-primary text-sm">4. Intellectual Property</h3>
                   <p>
-                    Service and its original content (excluding Content provided by users), features and functionality are and will remain the exclusive property of CraftMatch and its licensors. Our trademarks may not be used in connection with any product or service without the prior written consent of CraftMatch.
+                    Service and its original content (excluding Content provided by users), features and functionality are and will remain the exclusive property of {supportConfig.company_name} and its licensors. Our trademarks may not be used in connection with any product or service without the prior written consent of {supportConfig.company_name}.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">5. Termination</h3>
@@ -665,7 +661,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                   <h3 className="font-bold text-text-primary text-sm">7. Contact Us</h3>
                   <p>
-                    Please send your feedback, comments, requests for technical support by email: <strong>craftmatch.assist@gmail.com</strong>.
+                    Please send your feedback, comments, requests for technical support by email: <strong>{supportConfig.escalation_email}</strong>.
                   </p>
                 </div>
               </div>
@@ -680,19 +676,19 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Privacy Policy</h2>
-                    <p className="text-[10px] text-text-muted">Effective date: 2026-06-06</p>
+                    <p className="text-[10px] text-text-muted">Effective date: {supportConfig.effective_date}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="font-bold text-text-primary text-sm">1. Introduction</h3>
                   <p>
-                    Welcome to CraftMatch. CraftMatch (“us”, “we”, or “our”) operates craftmatch.com (hereinafter referred to as “Service”). Our Privacy Policy governs your visit to craftmatch.com, and explains how we collect, safeguard and disclose information that results from your use of our Service.
+                    Welcome to {supportConfig.company_name}. {supportConfig.company_name} (“us”, “we”, or “our”) operates {supportConfig.domain_name} (hereinafter referred to as “Service”). Our Privacy Policy governs your visit to {supportConfig.domain_name}, and explains how we collect, safeguard and disclose information that results from your use of our Service.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">2. Definitions</h3>
                   <p>
-                    <strong>SERVICE</strong> means the craftmatch.com website operated by CraftMatch.<br />
+                    <strong>SERVICE</strong> means the {supportConfig.domain_name} website operated by {supportConfig.company_name}.<br />
                     <strong>PERSONAL DATA</strong> means data about a living individual who can be identified from those data.<br />
                     <strong>USAGE DATA</strong> is data collected automatically generated by the use of Service.
                   </p>
@@ -711,17 +707,17 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                   <h3 className="font-bold text-text-primary text-sm">4. Use of Data</h3>
                   <p>
-                    CraftMatch uses the collected data to provide and maintain our Service, notify you about changes, provide customer support, monitor usage, detect technical issues, and enforce our contracts.
+                    {supportConfig.company_name} uses the collected data to provide and maintain our Service, notify you about changes, provide customer support, monitor usage, detect technical issues, and enforce our contracts.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">5. Governing Law</h3>
                   <p>
-                    This policy is aligned with Ghanaian Data Protection regulations (DPA 2012) and is maintains compliance with GDPR policies where applicable.
+                    This policy is aligned with Ghanaian Data Protection regulations (DPA 2012) and maintains compliance with GDPR policies where applicable.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">6. Contact Us</h3>
                   <p>
-                    If you have any questions about this Privacy Policy, please contact us by email: <strong>support@craftmatch.com</strong>.
+                    If you have any questions about this Privacy Policy, please contact us by email: <strong>{supportConfig.support_email}</strong>.
                   </p>
                 </div>
               </div>
@@ -736,13 +732,13 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Cookie Policy</h2>
-                    <p className="text-[10px] text-text-muted">Last updated: 2026-06-06</p>
+                    <p className="text-[10px] text-text-muted">Last updated: {supportConfig.last_updated}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   <p>
-                    This Cookie Policy explains how CraftMatch uses cookies and similar technologies to recognize you when you visit our website. It explains what these technologies are and why we use them, as well as your rights to control our use of them.
+                    This Cookie Policy explains how {supportConfig.company_name} uses cookies and similar technologies to recognize you when you visit our website. It explains what these technologies are and why we use them, as well as your rights to control our use of them.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">What are cookies?</h3>
@@ -779,13 +775,13 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Dispute Resolution Policy</h2>
-                    <p className="text-[10px] text-text-muted">Effective date: 2026-06-06</p>
+                    <p className="text-[10px] text-text-muted">Effective date: {supportConfig.effective_date}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   <p>
-                    This Dispute Resolution Policy governs how disagreements regarding service quality, timelines, or financial releases between Clients and Artisans booked through CraftMatch are resolved.
+                    This Dispute Resolution Policy governs how disagreements regarding service quality, timelines, or financial releases between Clients and Artisans booked through {supportConfig.company_name} are resolved.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">1. Initial Negotiation</h3>
@@ -795,7 +791,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                   <h3 className="font-bold text-text-primary text-sm">2. Escrow Mediation</h3>
                   <p>
-                    If direct negotiations fail, either party can raise a dispute by emailing <strong>support@craftmatch.com</strong> with the booking ID. Once a dispute is opened:
+                    If direct negotiations fail, either party can raise a dispute by emailing <strong>{supportConfig.support_email}</strong> with the booking ID. Once a dispute is opened:
                   </p>
                   <ul className="list-disc pl-4 space-y-1">
                     <li>The escrow payment is frozen immediately.</li>
@@ -825,13 +821,13 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Cancellation & Refund Policy</h2>
-                    <p className="text-[10px] text-text-muted">Effective date: 2026-06-06</p>
+                    <p className="text-[10px] text-text-muted">Effective date: {supportConfig.effective_date}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   <p>
-                    This policy outlines the cancellations rules, windows, and refund deductions for both artisans and clients booking services on CraftMatch.
+                    This policy outlines the cancellations rules, windows, and refund deductions for both artisans and clients booking services on {supportConfig.company_name}.
                   </p>
 
                   <h3 className="font-bold text-text-primary text-sm">1. Client Cancellations</h3>
