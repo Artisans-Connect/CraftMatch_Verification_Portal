@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { KeyRound, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export function UpdatePasswordPage() {
@@ -90,10 +90,11 @@ export function UpdatePasswordPage() {
           className="max-w-md w-full text-center p-8 bg-white rounded-3xl border border-neutral-100" 
           style={{ boxShadow: '0 20px 50px rgba(44,36,24,0.1)' }}
         >
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="text-green-600 w-10 h-10" />
-          </div>
-          <h1 className="text-3xl font-bold text-text-primary mb-2">CraftMatch</h1>
+          <img
+            src="https://qdeznjpvkhrxesjykovi.supabase.co/storage/v1/object/public/CraftMatch_icon/CraftMatch.png"
+            alt="CraftMatch Logo"
+            className="w-20 h-20 mx-auto mb-6 rounded-2xl object-contain"
+          />
           <h2 className="text-xl font-semibold text-text-primary mb-4">Password Updated!</h2>
           <p className="text-lg text-text-secondary mb-8">
             Your password has been successfully changed.
@@ -118,10 +119,11 @@ export function UpdatePasswordPage() {
         className="max-w-md w-full p-8 bg-white rounded-3xl border border-neutral-100" 
         style={{ boxShadow: '0 20px 50px rgba(44,36,24,0.1)' }}
       >
-        <div className="w-16 h-16 bg-primary-light rounded-2xl flex items-center justify-center mb-6">
-          <KeyRound className="text-primary-dark w-8 h-8" />
-        </div>
-        <h2 className="text-sm font-bold text-primary uppercase tracking-wider mb-1">CraftMatch</h2>
+        <img
+          src="https://qdeznjpvkhrxesjykovi.supabase.co/storage/v1/object/public/CraftMatch_icon/CraftMatch.png"
+          alt="CraftMatch Logo"
+          className="w-16 h-16 mb-6 rounded-2xl object-contain"
+        />
         <h1 className="text-3xl font-bold text-text-primary mb-2">Create new password</h1>
         <p className="text-text-secondary mb-8">
           Your new password must be different from previous used passwords.
