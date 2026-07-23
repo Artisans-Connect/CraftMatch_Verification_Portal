@@ -10,6 +10,11 @@ export function UpdatePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Parse query parameters to determine context (mobile app vs website)
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get('source');
+  const redirectTo = params.get('redirect_to');
+
   useEffect(() => {
     // Handle PKCE code exchange if present in URL
     const params = new URLSearchParams(window.location.search);
@@ -84,6 +89,13 @@ export function UpdatePasswordPage() {
   };
 
   if (success) {
+    const isApp = source === 'app';
+    let signInUrl = 'craftmatch://login';
+    if (redirectTo) {
+      const base = redirectTo.endsWith('/') ? redirectTo.slice(0, -1) : redirectTo;
+      signInUrl = `${base}/#/auth/sign-in`;
+    }
+
     return (
       <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-4">
         <div 
@@ -100,14 +112,20 @@ export function UpdatePasswordPage() {
             Your password has been successfully changed.
           </p>
           <p className="text-sm text-text-muted bg-neutral-50 p-4 rounded-xl mb-6">
-            You can now return to the CraftMatch app and log in with your new password. You may safely close this tab.
+            {isApp ? (
+              "You can now return to the CraftMatch app and log in with your new password. You may safely close this tab."
+            ) : (
+              "Your password has been successfully updated. You can now return to the sign in page to log in."
+            )}
           </p>
-          <a
-            href="craftmatch://login"
-            className="inline-flex w-full py-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 transition-all items-center justify-center"
-          >
-            Return to Sign In
-          </a>
+          {!isApp && (
+            <a
+              href={signInUrl}
+              className="inline-flex w-full py-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 transition-all items-center justify-center"
+            >
+              Return to Sign In
+            </a>
+          )}
         </div>
       </div>
     );
