@@ -58,6 +58,7 @@ export function PublicLayout({ children, showBack, backLabel = 'Back', onBack, o
               <button onClick={() => handleNav('home')} className="btn-ghost text-sm">Home</button>
               <button onClick={() => handleNav('apply')} className="btn-ghost text-sm">Apply</button>
               <button onClick={() => handleNav('status')} className="btn-ghost text-sm">Check Status</button>
+              <button onClick={() => handleNav('download')} className="btn-ghost text-sm">Download App</button>
               <button onClick={() => handleNav('faq')} className="btn-ghost text-sm">Support</button>
             </nav>
 
@@ -86,6 +87,7 @@ export function PublicLayout({ children, showBack, backLabel = 'Back', onBack, o
                 <button onClick={() => handleNav('home')} className="btn-ghost text-sm w-full justify-start">Home</button>
                 <button onClick={() => handleNav('apply')} className="btn-ghost text-sm w-full justify-start">Apply</button>
                 <button onClick={() => handleNav('status')} className="btn-ghost text-sm w-full justify-start">Check Status</button>
+                <button onClick={() => handleNav('download')} className="btn-ghost text-sm w-full justify-start">Download App</button>
                 <button onClick={() => handleNav('faq')} className="btn-ghost text-sm w-full justify-start">Support</button>
               </div>
             </div>
@@ -135,6 +137,7 @@ export function PublicLayout({ children, showBack, backLabel = 'Back', onBack, o
               <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Platform</h4>
               <ul className="space-y-2 text-xs text-neutral-400">
                 <li><button onClick={() => onNavigate?.('home')} className="hover:text-white transition-colors text-left">Home</button></li>
+                <li><button onClick={() => onNavigate?.('download')} className="hover:text-white transition-colors text-left">Download App</button></li>
                 <li><button onClick={() => onNavigate?.('apply')} className="hover:text-white transition-colors text-left">Apply for Verification</button></li>
                 <li><button onClick={() => onNavigate?.('status')} className="hover:text-white transition-colors text-left">Check Application Status</button></li>
               </ul>
