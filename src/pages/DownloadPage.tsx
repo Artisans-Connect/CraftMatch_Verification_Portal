@@ -81,11 +81,11 @@ const fallbackRelease: AppReleaseResponse = {
     },
     {
       platform: 'web',
-      label: 'Web App',
-      href: '',
+      label: 'Web PWA',
+      href: 'https://artisans-app-frontend.vercel.app/',
       version: '1.0.0',
       minRequirement: 'Latest Chrome, Edge, Safari, or Firefox',
-      available: false,
+      available: true,
       external: true,
     },
   ],
@@ -113,9 +113,9 @@ const platformCopy: Record<ReleasePlatform, { title: string; description: string
     action: 'Download for macOS',
   },
   web: {
-    title: 'Web',
-    description: 'Continue in the browser if installing the mobile or desktop app is not convenient.',
-    action: 'Open Web App',
+    title: 'Web PWA',
+    description: 'Use the existing CraftMatch progressive web app directly in the browser or install it from supported browsers.',
+    action: 'Open PWA',
   },
 };
 
@@ -199,12 +199,12 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
               <div className="flex flex-col sm:flex-row gap-3">
                 {webLink ? (
                   <a href={webLink.href} className="btn-primary text-base px-8 py-3.5" target="_blank" rel="noreferrer">
-                    Open Web App
+                    Open PWA
                     <ExternalLink size={18} />
                   </a>
                 ) : (
                   <button className="btn-primary text-base px-8 py-3.5 opacity-60 cursor-not-allowed" disabled>
-                    Web App Coming Soon
+                    PWA Unavailable
                   </button>
                 )}
                 <button onClick={() => onNavigate('faq')} className="btn-secondary text-base px-8 py-3.5">
