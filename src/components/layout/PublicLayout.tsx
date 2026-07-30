@@ -138,6 +138,7 @@ export function PublicLayout({ children, showBack, backLabel = 'Back', onBack, o
               <ul className="space-y-2 text-xs text-neutral-400">
                 <li><button onClick={() => onNavigate?.('home')} className="hover:text-white transition-colors text-left">Home</button></li>
                 <li><button onClick={() => onNavigate?.('download')} className="hover:text-white transition-colors text-left">Download App</button></li>
+                <li><button onClick={() => onNavigate?.('install_guide')} className="hover:text-white transition-colors text-left">Installation Guide</button></li>
                 <li><button onClick={() => onNavigate?.('apply')} className="hover:text-white transition-colors text-left">Apply for Verification</button></li>
                 <li><button onClick={() => onNavigate?.('status')} className="hover:text-white transition-colors text-left">Check Application Status</button></li>
               </ul>

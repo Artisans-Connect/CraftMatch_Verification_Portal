@@ -207,7 +207,7 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
                     PWA Unavailable
                   </button>
                 )}
-                <button onClick={() => onNavigate('faq')} className="btn-secondary text-base px-8 py-3.5">
+                <button onClick={() => onNavigate('install_guide')} className="btn-secondary text-base px-8 py-3.5">
                   Installation Help
                 </button>
               </div>
@@ -347,8 +347,8 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
             If your device blocks an APK, store link, or desktop installer, visit support for setup guidance and safety notes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => onNavigate('faq')} className="btn-primary">
-              Read FAQs
+            <button onClick={() => onNavigate('install_guide')} className="btn-primary">
+              View Install Guide
             </button>
             <button onClick={() => onNavigate('contact')} className="btn-secondary">
               Contact Support

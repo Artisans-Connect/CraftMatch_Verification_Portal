@@ -12,6 +12,7 @@ import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { SupportHub } from './pages/SupportHub';
 import { DownloadPage } from './pages/DownloadPage';
+import { InstallGuidePage } from './pages/InstallGuidePage';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
 import { apiPost } from './lib/api';
@@ -34,6 +35,7 @@ type Page =
   | 'email_verified'
   | 'update_password'
   | 'download'
+  | 'install_guide'
   | 'about'
   | 'faq'
   | 'contact'
@@ -65,6 +67,7 @@ function getInitialPage(): Page {
   if (hash.startsWith('/apply')) return 'apply';
   if (hash.startsWith('/status')) return 'status';
   if (hash.startsWith('/download')) return 'download';
+  if (hash.startsWith('/install-guide')) return 'install_guide';
   if (hash.startsWith('/about')) return 'about';
   if (hash.startsWith('/faq')) return 'faq';
   if (hash.startsWith('/contact')) return 'contact';
@@ -116,6 +119,7 @@ export default function App() {
       settings: '/portal/admin/settings',
       update_password: '/update-password',
       download: '/download',
+      install_guide: '/install-guide',
       about: '/about',
       faq: '/faq',
       contact: '/contact',
@@ -145,6 +149,7 @@ export default function App() {
     }
     if (page === 'status') return <StatusPage onNavigate={navigate} />;
     if (page === 'download') return <DownloadPage onNavigate={navigate} />;
+    if (page === 'install_guide') return <InstallGuidePage onNavigate={navigate} />;
 
     if (page === 'dashboard') return <AdminDashboard onNavigate={navigate} />;
 
