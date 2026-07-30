@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { PasswordStrengthMeter, evaluatePassword } from '../components/ui/PasswordStrengthMeter';
 
 export function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
@@ -59,8 +60,9 @@ export function UpdatePasswordPage() {
       setError('Passwords do not match');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    const strength = evaluatePassword(password);
+    if (!strength.isAcceptable) {
+      setError(strength.hint);
       return;
     }
 
@@ -159,7 +161,7 @@ export function UpdatePasswordPage() {
               <label className="block text-sm font-medium text-text-primary mb-1">
                 New Password
               </label>
-              <div className="relative">
+              <div className="relative mb-3">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -177,6 +179,7 @@ export function UpdatePasswordPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              <PasswordStrengthMeter password={password} />
             </div>
 
             <div>
