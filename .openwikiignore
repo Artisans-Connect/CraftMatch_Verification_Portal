@@ -1,0 +1,12 @@
+# Secrets and local configuration
+.env
+.env.*
+
+# Dependencies, build output, and tool state
+node_modules/
+dist/
+dist-ssr/
+supabase/.temp/
+
+# Keep generated OpenWiki pages out of their own source scan.
+openwiki/
