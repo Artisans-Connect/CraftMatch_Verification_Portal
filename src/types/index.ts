@@ -114,6 +114,7 @@ export interface AdminCategory {
   description: string | null;
   sort_order: number;
   is_active: boolean;
+  base_fee?: number | null;
   created_at: string;
   subcategories: AdminSubcategory[];
 }

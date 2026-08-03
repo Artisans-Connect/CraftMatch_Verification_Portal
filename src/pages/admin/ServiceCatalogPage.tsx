@@ -25,6 +25,7 @@ type CategoryForm = {
   description: string;
   sort_order: number;
   is_active: boolean;
+  base_fee: number;
 };
 
 type SubcategoryForm = {
@@ -43,6 +44,7 @@ const emptyCategory: CategoryForm = {
   description: '',
   sort_order: 0,
   is_active: true,
+  base_fee: 60,
 };
 
 const emptySubcategory: SubcategoryForm = {
@@ -66,6 +68,7 @@ function categoryToForm(category: AdminCategory): CategoryForm {
     description: category.description ?? '',
     sort_order: category.sort_order ?? 0,
     is_active: category.is_active,
+    base_fee: category.base_fee ?? 60,
   };
 }
 
@@ -271,6 +274,9 @@ export function ServiceCatalogPage({ onNavigate }: ServiceCatalogPageProps) {
                           <span className={`badge ${category.is_active ? 'badge-approved' : 'badge-rejected'}`}>
                             {category.is_active ? 'Active' : 'Inactive'}
                           </span>
+                          <span className="badge bg-primary-50 text-primary-700 font-semibold">
+                            GH₵ {category.base_fee ?? 60} base
+                          </span>
                         </div>
                         <p className="text-xs text-text-muted truncate">
                           {category.slug} · {category.subcategories?.length ?? 0} service types · order {category.sort_order}
@@ -408,17 +414,41 @@ function CatalogForm({
         <button className="btn-ghost" onClick={onCancel}><X size={16} /></button>
       </div>
       <div className="grid md:grid-cols-2 gap-3">
-        <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => onChange({ ...form, name: e.target.value, slug: form.slug || slugify(e.target.value) })} />
-        <input className="input-field" placeholder="Slug" value={form.slug} onChange={(e) => onChange({ ...form, slug: slugify(e.target.value) })} />
-        <input className="input-field" placeholder="Icon name" value={form.icon_name} onChange={(e) => onChange({ ...form, icon_name: e.target.value })} />
-        <input className="input-field" placeholder="#C15A3D" value={form.color_hex} onChange={(e) => onChange({ ...form, color_hex: e.target.value })} />
-        <input className="input-field" type="number" min={0} value={form.sort_order} onChange={(e) => onChange({ ...form, sort_order: Number(e.target.value) })} />
-        <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-          <input type="checkbox" checked={form.is_active} onChange={(e) => onChange({ ...form, is_active: e.target.checked })} />
-          Active
-        </label>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Name</label>
+          <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => onChange({ ...form, name: e.target.value, slug: form.slug || slugify(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Slug</label>
+          <input className="input-field" placeholder="Slug" value={form.slug} onChange={(e) => onChange({ ...form, slug: slugify(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Icon Name</label>
+          <input className="input-field" placeholder="Icon name" value={form.icon_name} onChange={(e) => onChange({ ...form, icon_name: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Color Hex</label>
+          <input className="input-field" placeholder="#C15A3D" value={form.color_hex} onChange={(e) => onChange({ ...form, color_hex: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Base Price (GH₵)</label>
+          <input className="input-field" type="number" min={0} step={1} placeholder="60" value={form.base_fee} onChange={(e) => onChange({ ...form, base_fee: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Sort Order</label>
+          <input className="input-field" type="number" min={0} value={form.sort_order} onChange={(e) => onChange({ ...form, sort_order: Number(e.target.value) })} />
+        </div>
+        <div className="flex items-center pt-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => onChange({ ...form, is_active: e.target.checked })} />
+            Active
+          </label>
+        </div>
       </div>
-      <textarea className="input-field min-h-[88px]" placeholder="Description" value={form.description} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+      <div>
+        <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
+        <textarea className="input-field min-h-[88px]" placeholder="Description" value={form.description} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+      </div>
       <button disabled={saving || !form.name || !form.slug} className="btn-primary" onClick={onSave}>
         <Save size={16} />
         Save
