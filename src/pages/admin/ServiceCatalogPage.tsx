@@ -91,7 +91,7 @@ export function ServiceCatalogPage({ onNavigate }: ServiceCatalogPageProps) {
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategory);
   const [subcategoryForm, setSubcategoryForm] = useState<SubcategoryForm>(emptySubcategory);
   const [showNewCategory, setShowNewCategory] = useState(false);
-  const [showInactive, setShowInactive] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
