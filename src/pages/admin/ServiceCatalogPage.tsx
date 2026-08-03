@@ -34,6 +34,7 @@ type SubcategoryForm = {
   description: string;
   sort_order: number;
   is_active: boolean;
+  base_fee: number | '';
 };
 
 const emptyCategory: CategoryForm = {
@@ -53,6 +54,7 @@ const emptySubcategory: SubcategoryForm = {
   description: '',
   sort_order: 0,
   is_active: true,
+  base_fee: '',
 };
 
 function slugify(value: string) {
@@ -79,6 +81,7 @@ function subcategoryToForm(subcategory: AdminSubcategory): SubcategoryForm {
     description: subcategory.description ?? '',
     sort_order: subcategory.sort_order ?? 0,
     is_active: subcategory.is_active,
+    base_fee: subcategory.base_fee ?? '',
   };
 }
 
@@ -151,6 +154,7 @@ export function ServiceCatalogPage({ onNavigate }: ServiceCatalogPageProps) {
       const body = {
         ...subcategoryForm,
         description: subcategoryForm.description || null,
+        base_fee: subcategoryForm.base_fee === '' ? null : Number(subcategoryForm.base_fee),
       };
       if (subcategoryId) {
         await adminPatch<AdminSubcategory>(`/admin/subcategories/${subcategoryId}`, body);
@@ -355,6 +359,11 @@ export function ServiceCatalogPage({ onNavigate }: ServiceCatalogPageProps) {
                                     <span className={`badge ${subcategory.is_active ? 'badge-approved' : 'badge-rejected'}`}>
                                       {subcategory.is_active ? 'Active' : 'Inactive'}
                                     </span>
+                                    <span className="badge bg-gold-50 text-gold-700 font-medium">
+                                      {subcategory.base_fee != null
+                                        ? `GH₵ ${subcategory.base_fee} base`
+                                        : `GH₵ ${category.base_fee ?? 60} inherited`}
+                                    </span>
                                   </div>
                                   <p className="text-xs text-text-muted">
                                     {subcategory.slug} · order {subcategory.sort_order}
@@ -479,15 +488,33 @@ function SubcategoryFormView({
         <button className="btn-ghost" onClick={onCancel}><X size={16} /></button>
       </div>
       <div className="grid md:grid-cols-2 gap-3">
-        <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => onChange({ ...form, name: e.target.value, slug: form.slug || slugify(e.target.value) })} />
-        <input className="input-field" placeholder="Slug" value={form.slug} onChange={(e) => onChange({ ...form, slug: slugify(e.target.value) })} />
-        <input className="input-field" type="number" min={0} value={form.sort_order} onChange={(e) => onChange({ ...form, sort_order: Number(e.target.value) })} />
-        <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-          <input type="checkbox" checked={form.is_active} onChange={(e) => onChange({ ...form, is_active: e.target.checked })} />
-          Active
-        </label>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Name</label>
+          <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => onChange({ ...form, name: e.target.value, slug: form.slug || slugify(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Slug</label>
+          <input className="input-field" placeholder="Slug" value={form.slug} onChange={(e) => onChange({ ...form, slug: slugify(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Base Price Override (GH₵ - optional)</label>
+          <input className="input-field" type="number" min={0} step={1} placeholder="Inherited base price" value={form.base_fee} onChange={(e) => onChange({ ...form, base_fee: e.target.value === '' ? '' : Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-text-muted mb-1">Sort Order</label>
+          <input className="input-field" type="number" min={0} value={form.sort_order} onChange={(e) => onChange({ ...form, sort_order: Number(e.target.value) })} />
+        </div>
+        <div className="flex items-center pt-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => onChange({ ...form, is_active: e.target.checked })} />
+            Active
+          </label>
+        </div>
       </div>
-      <textarea className="input-field min-h-[72px]" placeholder="Description" value={form.description} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+      <div>
+        <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
+        <textarea className="input-field min-h-[72px]" placeholder="Description" value={form.description} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+      </div>
       <button disabled={saving || !form.name || !form.slug} className="btn-primary" onClick={onSave}>
         <Save size={16} />
         Save
