@@ -6,7 +6,7 @@ export const supportConfig = {
   escalation_email: "craftmatch.assist@gmail.com",
   effective_date: "2026-06-06",
   last_updated: "2026-06-06",
-  office_address: "University of Ghana, Legon Campus, Accra, Ghana",
+  office_address: "Kwame Nkrumah University of Science and Technology (KNUST), Kumasi, Ghana",
   team_members: [
   {
     "name": "Peniel",

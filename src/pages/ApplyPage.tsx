@@ -511,7 +511,7 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
                 </div>
                 <div>
                   <label className="label">City <span className="text-error">*</span></label>
-                  <input className="input-field" placeholder="e.g. Accra"
+                  <input className="input-field" placeholder="e.g. Kumasi"
                     value={form.professional.current_city}
                     onChange={e => updateProfessional('current_city', e.target.value)} />
                   {errors.current_city && <p className="text-xs text-error mt-1">{errors.current_city}</p>}
