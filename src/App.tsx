@@ -59,9 +59,13 @@ const filterMap: Record<string, VerificationStatus | null> = {
 
 function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
-  if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
-  if (window.location.pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
-  if (hash.startsWith('/payment-gateway')) return 'payment_gateway';
+  const pathname = window.location.pathname;
+
+  // Payment gateway can arrive via path (from backend redirect) or hash
+  if (pathname.startsWith('/payment-gateway') || hash.startsWith('/payment-gateway')) return 'payment_gateway';
+
+  if (pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
+  if (pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
   if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
   if (hash.startsWith('/portal/admin/accounts')) return 'accounts';

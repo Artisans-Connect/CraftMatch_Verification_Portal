@@ -26,8 +26,16 @@ export function PaymentGateway() {
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference');
+    // Reference can arrive via path query (?reference=...) or hash query (#/payment-gateway?reference=...)
+    const searchParams = new URLSearchParams(window.location.search);
+    let ref = searchParams.get('reference');
+    if (!ref) {
+      const hashParts = window.location.hash.split('?');
+      if (hashParts.length > 1) {
+        const hashParams = new URLSearchParams(hashParts[1]);
+        ref = hashParams.get('reference');
+      }
+    }
     setReference(ref);
 
     if (!ref) {
