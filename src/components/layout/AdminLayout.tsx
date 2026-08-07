@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
 import {
   Shield, LayoutDashboard, FileText, CheckCircle, XCircle,
   ClipboardList, Settings, ChevronLeft, ChevronRight, LogOut,
-  Clock, AlertCircle, Layers3, Users, Menu
+  Clock, AlertCircle, Layers3, Users, Menu, ShieldAlert
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -13,6 +12,7 @@ interface AdminLayoutProps {
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, route: '/portal/admin' },
+  { id: 'reports', label: 'Trust & Safety', icon: ShieldAlert, route: '/portal/admin/reports' },
   { id: 'applications', label: 'All Applications', icon: FileText, route: '/portal/admin/applications' },
   { id: 'pending', label: 'Pending Reviews', icon: Clock, route: '/portal/admin/pending' },
   { id: 'more_info', label: 'More Info Needed', icon: AlertCircle, route: '/portal/admin/more-info' },

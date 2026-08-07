@@ -8,6 +8,7 @@ import { ApplicationDetail } from './pages/admin/ApplicationDetail';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ServiceCatalogPage } from './pages/admin/ServiceCatalogPage';
 import { AccountsPage } from './pages/admin/AccountsPage';
+import { ReportsPage } from './pages/admin/ReportsPage';
 import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { SupportHub } from './pages/SupportHub';
@@ -22,6 +23,7 @@ type Page =
   | 'apply'
   | 'status'
   | 'dashboard'
+  | 'reports'
   | 'applications'
   | 'pending'
   | 'more_info'
@@ -59,6 +61,7 @@ function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
   if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
   if (window.location.pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
+  if (hash.startsWith('/portal/admin/reports')) return 'reports';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
   if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
   if (hash.startsWith('/portal/admin/accounts')) return 'accounts';
@@ -108,6 +111,7 @@ export default function App() {
       apply: '/apply',
       status: '/status',
       dashboard: '/portal/admin',
+      reports: '/portal/admin/reports',
       applications: '/portal/admin/applications',
       pending: '/portal/admin/pending',
       more_info: '/portal/admin/more-info',
@@ -152,6 +156,7 @@ export default function App() {
     if (page === 'install_guide') return <InstallGuidePage onNavigate={navigate} />;
 
     if (page === 'dashboard') return <AdminDashboard onNavigate={navigate} />;
+    if (page === 'reports') return <ReportsPage onNavigate={navigate} />;
 
     if (page === 'applications' || page === 'pending' || page === 'more_info' || page === 'approved' || page === 'rejected') {
       return (

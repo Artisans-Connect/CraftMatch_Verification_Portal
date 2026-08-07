@@ -215,3 +215,64 @@ export interface ApplicationFormData {
   };
   agreedToTerms: boolean;
 }
+
+export type ReportStatus = 'PENDING' | 'UNDER_REVIEW' | 'NEEDS_EVIDENCE' | 'ACTION_TAKEN' | 'DISMISSED' | 'RESOLVED';
+export type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type ModerationAction = 'NONE' | 'WARNING_ISSUED' | 'TEMPORARY_SUSPENSION' | 'PERMANENT_BAN' | 'DISMISSED' | 'EVIDENCE_REQUESTED';
+
+export interface ReportAuditLog {
+  id: string;
+  report_id: string;
+  actor_id: string | null;
+  actor_role: string;
+  action: string;
+  previous_status: string | null;
+  new_status: string | null;
+  notes: string | null;
+  created_at: string;
+  actor?: { full_name: string } | null;
+}
+
+export interface RepeatOffenderRisk {
+  reported_user_id: string;
+  total_reports_against: number;
+  recent_reports_90d: number;
+  confirmed_violations: number;
+  emergency_reports_count: number;
+  reporter_false_report_ratio: number;
+  risk_level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  risk_flags: string[];
+  requires_manual_moderator_review: boolean;
+}
+
+export interface AdminReport {
+  id: string;
+  ticket_number: string;
+  category: string;
+  description: string;
+  attachments: string[];
+  priority: ReportPriority;
+  status: ReportStatus;
+  is_emergency: boolean;
+  action_taken: ModerationAction;
+  resolution_reason?: string | null;
+  moderation_notes?: string | null;
+  assigned_moderator_id?: string | null;
+  context_metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string | null;
+  reporter?: { id: string; full_name: string; phone?: string; avatar_url?: string; created_at?: string } | null;
+  reported?: {
+    id: string;
+    full_name: string;
+    phone?: string;
+    avatar_url?: string;
+    account_status?: string;
+    created_at?: string;
+    workers?: { is_verified: boolean; rating: number; total_jobs: number } | null;
+  } | null;
+  booking?: { id: string; title: string; status: string; total_amount: number; address: string; scheduled_time: string } | null;
+  audit_logs?: ReportAuditLog[];
+  repeat_offender_risk?: RepeatOffenderRisk | null;
+}
