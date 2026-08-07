@@ -27,7 +27,6 @@ export function PaymentGateway() {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(3);
   const [simulating, setSimulating] = useState(false);
-
   const isSandbox = window.location.pathname.includes('/sandbox') || 
                     window.location.hash.includes('/sandbox') || 
                     window.location.search.includes('sandbox=true') || 
