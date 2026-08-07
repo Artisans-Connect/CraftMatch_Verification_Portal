@@ -14,6 +14,7 @@ import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { SupportHub } from './pages/SupportHub';
 import { DownloadPage } from './pages/DownloadPage';
 import { InstallGuidePage } from './pages/InstallGuidePage';
+import { PaymentGateway } from './pages/PaymentGateway';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import type { WorkerVerification, VerificationStatus } from './types';
 import { apiPost } from './lib/api';
@@ -38,6 +39,7 @@ type Page =
   | 'update_password'
   | 'download'
   | 'install_guide'
+  | 'payment_gateway'
   | 'about'
   | 'faq'
   | 'contact'
@@ -59,8 +61,13 @@ const filterMap: Record<string, VerificationStatus | null> = {
 
 function getInitialPage(): Page {
   const hash = window.location.hash.replace('#', '') || '/';
-  if (window.location.pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
-  if (window.location.pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
+  const pathname = window.location.pathname;
+
+  // Payment gateway can arrive via path (from backend redirect) or hash
+  if (pathname.startsWith('/payment-gateway') || hash.startsWith('/payment-gateway')) return 'payment_gateway';
+
+  if (pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
+  if (pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
   if (hash.startsWith('/portal/admin/reports')) return 'reports';
   if (hash.startsWith('/portal/admin/audits')) return 'audits';
   if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
@@ -124,6 +131,7 @@ export default function App() {
       update_password: '/update-password',
       download: '/download',
       install_guide: '/install-guide',
+      payment_gateway: '/payment-gateway',
       about: '/about',
       faq: '/faq',
       contact: '/contact',
@@ -154,6 +162,7 @@ export default function App() {
     if (page === 'status') return <StatusPage onNavigate={navigate} />;
     if (page === 'download') return <DownloadPage onNavigate={navigate} />;
     if (page === 'install_guide') return <InstallGuidePage onNavigate={navigate} />;
+    if (page === 'payment_gateway') return <PaymentGateway />;
 
     if (page === 'dashboard') return <AdminDashboard onNavigate={navigate} />;
     if (page === 'reports') return <ReportsPage onNavigate={navigate} />;
