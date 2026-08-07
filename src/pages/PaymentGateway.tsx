@@ -278,12 +278,20 @@ export function PaymentGateway() {
               <p className="text-slate-600 text-xs mt-4">
                 Redirecting you back to the CraftMatch mobile app in <span className={`font-bold ${isSandbox ? 'text-amber-600' : 'text-teal-600'}`}>{countdown}s</span>...
               </p>
-              <a
-                href={`craftmatch://payment-success?reference=${reference}`}
-                className={`w-full text-white py-3.5 rounded-xl font-semibold transition block text-center ${isSandbox ? 'bg-amber-600 hover:bg-amber-700' : 'bg-teal-600 hover:bg-teal-700'}`}
-              >
-                Return to App Now
-              </a>
+              <div className="flex flex-col space-y-3">
+                <a
+                  href={`craftmatch://payment-success?reference=${reference}`}
+                  className={`w-full text-white py-3.5 rounded-xl font-semibold transition block text-center ${isSandbox ? 'bg-amber-600 hover:bg-amber-700' : 'bg-teal-600 hover:bg-teal-700'}`}
+                >
+                  Return to Mobile App
+                </a>
+                <button
+                  onClick={() => window.close()}
+                  className="w-full bg-slate-800 text-white py-3.5 rounded-xl font-semibold hover:bg-slate-700 transition"
+                >
+                  Close Window (Return to Web)
+                </button>
+              </div>
             </div>
           ) : isSandbox ? (
             <div className="space-y-3">
@@ -292,7 +300,7 @@ export function PaymentGateway() {
                 disabled={simulating}
                 className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20 text-center block text-base"
               >
-                {simulating ? 'Simulating success...' : `Simulate Successful Payment (GHS ${totalAmount.toFixed(2)})`}
+                {simulating ? 'Simulating success...' : `Simulate Local Sandbox Payment (GHS ${totalAmount.toFixed(2)})`}
               </button>
               <button
                 onClick={handleSimulateFailure}
