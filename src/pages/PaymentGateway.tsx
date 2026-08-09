@@ -152,16 +152,40 @@ export function PaymentGateway() {
     }
   }, [payment?.status, reference]);
 
-  const handlePay = () => {
+  const [paying, setPaying] = useState(false);
+
+  const handlePay = async () => {
     if (isSandbox) {
       handleSimulateSuccess();
       return;
     }
 
-    if (payment?.paystack_payload?.authorization_url) {
-      window.location.href = payment.paystack_payload.authorization_url;
-    } else {
+    const existingUrl = payment?.paystack_payload?.authorization_url;
+    if (existingUrl && existingUrl.startsWith('https://')) {
+      window.location.href = existingUrl;
+      return;
+    }
+
+    // No valid Paystack URL — request one from the backend
+    if (!sessionId) {
       setError('Payment URL is missing. Please contact support.');
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const result = await apiPost<{ authorization_url: string }>(
+        `/payments/checkout-session/${sessionId}/initialize-paystack`,
+        {}
+      );
+      if (result.authorization_url) {
+        window.location.href = result.authorization_url;
+      } else {
+        setError('Could not get payment URL. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to initialize payment. Please try again.');
+      setPaying(false);
     }
   };
 
@@ -312,9 +336,10 @@ export function PaymentGateway() {
           ) : (
             <button
               onClick={handlePay}
-              className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 transition shadow-lg shadow-teal-600/20 text-center block text-base"
+              disabled={paying}
+              className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 transition shadow-lg shadow-teal-600/20 text-center block text-base disabled:opacity-60"
             >
-              Continue to Pay GHS {totalAmount.toFixed(2)}
+              {paying ? 'Connecting to payment gateway…' : `Continue to Pay GHS ${totalAmount.toFixed(2)}`}
             </button>
           )}
         </div>
