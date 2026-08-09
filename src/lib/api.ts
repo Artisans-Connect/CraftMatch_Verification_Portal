@@ -38,7 +38,8 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
   const json = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(json?.error?.message || json?.message || 'Request failed');
+    const errorMsg = json?.error?.message || json?.message || (typeof json?.error === 'string' ? json.error : null) || `HTTP ${response.status}: Request failed`;
+    throw new Error(errorMsg);
   }
   return (json?.data ?? json) as T;
 }
