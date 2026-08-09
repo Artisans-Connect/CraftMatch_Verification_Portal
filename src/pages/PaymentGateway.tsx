@@ -68,7 +68,7 @@ export function PaymentGateway() {
             status: session.status === 'completed' ? 'completed' : 'pending',
             reference: session.reference,
             paystack_payload: {
-              authorization_url: session.status === 'completed' ? undefined : '#'
+              authorization_url: session.authorization_url || undefined
             },
             jobs: {
               title: session.job?.title || 'CraftMatch Service',
