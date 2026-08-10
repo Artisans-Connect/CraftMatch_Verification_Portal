@@ -9,6 +9,7 @@ import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ServiceCatalogPage } from './pages/admin/ServiceCatalogPage';
 import { AccountsPage } from './pages/admin/AccountsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
+import { SettingsPage } from './pages/admin/SettingsPage';
 import { EmailVerifiedPage } from './pages/EmailVerifiedPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { SupportHub } from './pages/SupportHub';
@@ -186,7 +187,7 @@ export default function App() {
     if (page === 'accounts') return <AccountsPage onNavigate={navigate} />;
 
     if (page === 'settings') {
-      return <AdminDashboard onNavigate={navigate} />;
+      return <SettingsPage onNavigate={navigate} />;
     }
 
     if (page === 'email_verified') {
