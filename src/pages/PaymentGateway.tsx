@@ -322,10 +322,13 @@ export function PaymentGateway() {
                   {platform === 'web' ? 'Return to Website' : 'Return to Mobile App'}
                 </a>
                 <button
-                  onClick={() => window.close()}
+                  onClick={() => {
+                    window.open('', '_self');
+                    window.close();
+                  }}
                   className="w-full bg-text-primary text-white py-3.5 rounded-xl font-semibold hover:bg-text-secondary transition"
                 >
-                  Close Window
+                  Close / Return
                 </button>
               </div>
             </div>
