@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Shield, LayoutDashboard, FileText, CheckCircle, XCircle,
   ClipboardList, Settings, ChevronLeft, ChevronRight, LogOut,
