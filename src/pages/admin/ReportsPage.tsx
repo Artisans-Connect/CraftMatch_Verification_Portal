@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle, ShieldAlert, Clock, CheckCircle2, Search, Filter,
-  Eye, FileText, UserX, AlertCircle, Calendar, MessageSquare, MapPin,
-  X, ExternalLink, ShieldCheck, History, UserCheck
+  Eye, UserX, AlertCircle,
+  X, ExternalLink, ShieldCheck, History
 } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { adminGet, adminPatch } from '../../lib/api';
@@ -267,7 +267,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="font-medium text-neutral-900">{report.category.replaceAll('_', ' ')}</span>
+                        <span className="font-medium text-neutral-900">{report.category.replace(/_/g, ' ')}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <div>
@@ -307,7 +307,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                           report.status === 'ACTION_TAKEN' || report.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                           'bg-neutral-100 text-neutral-600'
                         }`}>
-                          {report.status.replaceAll('_', ' ')}
+                          {report.status.replace(/_/g, ' ')}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-xs text-neutral-500 whitespace-nowrap">
