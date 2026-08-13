@@ -27,6 +27,7 @@ export function PaymentGateway() {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(3);
   const [simulating, setSimulating] = useState(false);
+  const [platform, setPlatform] = useState<string | null>(null);
   const isSandbox = window.location.pathname.includes('/sandbox') || 
                     window.location.hash.includes('/sandbox') || 
                     window.location.search.includes('sandbox=true') || 
@@ -37,6 +38,7 @@ export function PaymentGateway() {
     const searchParams = new URLSearchParams(window.location.search);
     let sId = searchParams.get('sessionId');
     let ref = searchParams.get('reference');
+    let plat = searchParams.get('platform');
 
     if (!sId && !ref) {
       const hashParts = window.location.hash.split('?');
@@ -44,11 +46,13 @@ export function PaymentGateway() {
         const hashParams = new URLSearchParams(hashParts[1]);
         sId = hashParams.get('sessionId');
         ref = hashParams.get('reference');
+        plat = hashParams.get('platform');
       }
     }
     
     setSessionId(sId);
     setReference(ref);
+    setPlatform(plat);
 
     if (!sId && !ref) {
       setError('Invalid checkout session. No checkout session or reference was specified in the URL.');
@@ -141,7 +145,12 @@ export function PaymentGateway() {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            window.location.href = `craftmatch://payment-success?reference=${reference}`;
+            if (platform === 'web') {
+              const webUrl = import.meta.env.VITE_CRAFTMATCH_WEB_APP_URL || 'https://artisans-app-frontend.vercel.app';
+              window.location.href = `${webUrl.replace(/\/$/, '')}/#/payment-success?reference=${reference}`;
+            } else {
+              window.location.href = `craftmatch://payment-success?reference=${reference}`;
+            }
             return 0;
           }
           return prev - 1;
@@ -150,7 +159,7 @@ export function PaymentGateway() {
 
       return () => clearInterval(interval);
     }
-  }, [payment?.status, reference]);
+  }, [payment?.status, reference, platform]);
 
   const [paying, setPaying] = useState(false);
 
@@ -176,7 +185,7 @@ export function PaymentGateway() {
     try {
       const result = await apiPost<{ authorization_url: string }>(
         `/payments/checkout-session/${sessionId}/initialize-paystack`,
-        {}
+        { platform }
       );
       if (result.authorization_url) {
         window.location.href = result.authorization_url;
@@ -300,20 +309,23 @@ export function PaymentGateway() {
                 ✓ {isSandbox ? 'Sandbox Simulation Successful!' : 'Payment completed successfully! Funds are held securely in escrow.'}
               </div>
               <p className="text-slate-600 text-xs mt-4">
-                Redirecting you back to the CraftMatch mobile app in <span className={`font-bold ${isSandbox ? 'text-amber-600' : 'text-teal-600'}`}>{countdown}s</span>...
+                Redirecting you back to the CraftMatch {platform === 'web' ? 'website' : 'mobile app'} in <span className={`font-bold ${isSandbox ? 'text-amber-600' : 'text-teal-600'}`}>{countdown}s</span>...
               </p>
               <div className="flex flex-col space-y-3">
                 <a
-                  href={`craftmatch://payment-success?reference=${reference}`}
+                  href={platform === 'web' 
+                    ? `${(import.meta.env.VITE_CRAFTMATCH_WEB_APP_URL || 'https://artisans-app-frontend.vercel.app').replace(/\/$/, '')}/#/payment-success?reference=${reference}` 
+                    : `craftmatch://payment-success?reference=${reference}`
+                  }
                   className={`w-full text-white py-3.5 rounded-xl font-semibold transition block text-center ${isSandbox ? 'bg-amber-600 hover:bg-amber-700' : 'bg-teal-600 hover:bg-teal-700'}`}
                 >
-                  Return to Mobile App
+                  {platform === 'web' ? 'Return to Website' : 'Return to Mobile App'}
                 </a>
                 <button
                   onClick={() => window.close()}
                   className="w-full bg-slate-800 text-white py-3.5 rounded-xl font-semibold hover:bg-slate-700 transition"
                 >
-                  Close Window (Return to Web)
+                  Close Window
                 </button>
               </div>
             </div>
