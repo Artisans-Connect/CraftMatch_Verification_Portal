@@ -17,7 +17,7 @@ import { PublicLayout } from '../components/layout/PublicLayout';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { FileUpload } from '../components/ui/FileUpload';
 import { TRADE_CATEGORIES, GHANA_REGIONS } from '../lib/constants';
-import { apiPost } from '../lib/api';
+import { apiPost, apiPostMultipart } from '../lib/api';
 import type {
   PersonalInfoData,
   ProfessionalInfoData,
@@ -206,8 +206,6 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
           business_name: form.professional.business_name,
           current_region: form.professional.current_region,
           current_city: form.professional.current_city,
-          confidence_score: computeConfidenceScore(form),
-          fraud_indicators: computeFraudIndicators(form),
           references: refs,
         },
       );
@@ -222,19 +220,16 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
 
       if (toUpload.length > 0) {
         setUploadProgress('Uploading documents...');
-        await apiPost('/verification/me/application/documents', {
-          handoff_code: handoffCode,
-          verification_id: application.id,
-          files: await Promise.all(
-            toUpload.map(async ({ file, type }) => ({
-              document_type: type,
-              file_name: file.name,
-              mime_type: file.type || 'application/octet-stream',
-              size: file.size,
-              content_base64: await toBase64(file),
-            })),
-          ),
+        const formData = new FormData();
+        if (handoffCode) formData.append('handoff_code', handoffCode);
+        formData.append('verification_id', application.id);
+        const docTypes: string[] = [];
+        toUpload.forEach(({ file, type }) => {
+          formData.append('files', file);
+          docTypes.push(type);
         });
+        formData.append('document_types', JSON.stringify(docTypes));
+        await apiPostMultipart('/verification/me/application/documents', formData);
       }
 
       setApplicationNumber(application.application_number);

@@ -44,6 +44,25 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return (json?.data ?? json) as T;
 }
 
+export async function apiPostMultipart<T>(path: string, formData: FormData): Promise<T> {
+  if (!apiBaseUrl) throw new Error('Missing VITE_EXPRESS_API_BASE_URL');
+
+  const response = await fetch(`${apiBaseUrl.replace(/\/$/, '')}${path}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+    },
+    body: formData,
+  });
+
+  const json = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errorMsg = json?.error?.message || json?.message || (typeof json?.error === 'string' ? json.error : null) || `HTTP ${response.status}: Request failed`;
+    throw new Error(errorMsg);
+  }
+  return (json?.data ?? json) as T;
+}
+
 export async function adminGet<T>(path: string): Promise<T> {
   if (!apiBaseUrl) throw new Error('Missing VITE_EXPRESS_API_BASE_URL');
 

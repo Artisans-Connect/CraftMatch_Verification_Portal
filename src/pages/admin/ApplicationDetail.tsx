@@ -16,7 +16,8 @@ import type {
 } from '../../types';
 
 interface ApplicationDetailProps {
-  application: WorkerVerification;
+  application?: WorkerVerification | null;
+  applicationId?: string;
   onNavigate: (page: string, data?: unknown) => void;
 }
 
@@ -50,8 +51,10 @@ const auditActionConfig = {
   status_changed:      { label: 'Status Changed',        color: 'bg-neutral-400',  Icon: RefreshCw },
 };
 
-export function ApplicationDetail({ application: initialApplication, onNavigate }: ApplicationDetailProps) {
-  const [application, setApplication] = useState(initialApplication);
+export function ApplicationDetail({ application: initialApplication, applicationId: propAppId, onNavigate }: ApplicationDetailProps) {
+  const targetId = initialApplication?.id || propAppId;
+  const [application, setApplication] = useState<WorkerVerification | null>(initialApplication || null);
+  const [loading, setLoading] = useState(!initialApplication && Boolean(targetId));
   const [references, setReferences] = useState<VerificationReference[]>([]);
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
   const [auditLogs, setAuditLogs] = useState<VerificationAuditLog[]>([]);
@@ -81,17 +84,25 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
   }, []);
 
   const standardTrades = categories.flatMap(cat => cat.subcategories.map(sub => sub.name.toLowerCase()));
-  const isCustomTrade = categories.length > 0 && !standardTrades.includes(application.trade_category.toLowerCase());
+  const isCustomTrade = categories.length > 0 && Boolean(application?.trade_category) && !standardTrades.includes((application?.trade_category || '').toLowerCase());
 
   const fetchData = useCallback(async () => {
-    const bundle = await adminGet<ApplicationBundle>(
-      `/verification/admin/applications/${application.id}`,
-    );
-    setApplication(bundle.application);
-    setReferences(bundle.references);
-    setDocuments(bundle.documents);
-    setAuditLogs(bundle.audit_logs);
-  }, [application.id]);
+    if (!targetId) return;
+    try {
+      setLoading(true);
+      const bundle = await adminGet<ApplicationBundle>(
+        `/verification/admin/applications/${targetId}`,
+      );
+      setApplication(bundle.application);
+      setReferences(bundle.references);
+      setDocuments(bundle.documents);
+      setAuditLogs(bundle.audit_logs);
+    } catch (err) {
+      console.error('Failed to fetch application bundle:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [targetId]);
 
   // Initial data fetch
   useEffect(() => {
@@ -100,8 +111,8 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
 
   // Realtime subscription — live status updates
   useEffect(() => {
-    setRealtimeConnected(true);
-  }, [application.id]);
+    if (targetId) setRealtimeConnected(true);
+  }, [targetId]);
 
   const handleAction = async () => {
     if (modal === 'reject' && !modalData.reason) return;
@@ -171,6 +182,22 @@ export function ApplicationDetail({ application: initialApplication, onNavigate 
       setTimeout(() => setActionError(''), 4000);
     }
   };
+
+  if (loading || !application) {
+    return (
+      <AdminLayout currentPage="applications" onNavigate={onNavigate}>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="flex items-center gap-3 text-text-muted">
+            <svg className="animate-spin w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <span>Loading application details...</span>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // Group documents by type
   const docsByType = documents.reduce((acc, doc) => {

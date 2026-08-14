@@ -60,43 +60,73 @@ const filterMap: Record<string, VerificationStatus | null> = {
   applications: null,
 };
 
-function getInitialPage(): Page {
-  const hash = window.location.hash.replace('#', '') || '/';
+interface RouteState {
+  page: Page;
+  appId?: string;
+}
+
+function parseHashRoute(): RouteState {
+  const hash = window.location.hash.replace('#', '').trim() || '/';
   const pathname = window.location.pathname;
 
-  // Payment gateway can arrive via path (from backend redirect) or hash
-  if (pathname.startsWith('/payment-gateway') || hash.startsWith('/payment-gateway')) return 'payment_gateway';
+  if (pathname.startsWith('/payment-gateway') || hash.startsWith('/payment-gateway')) return { page: 'payment_gateway' };
+  if (pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return { page: 'email_verified' };
+  if (pathname.includes('/update-password') || hash.startsWith('/update-password')) return { page: 'update_password' };
 
-  if (pathname.includes('/email-verified') || hash.startsWith('/email-verified')) return 'email_verified';
-  if (pathname.includes('/update-password') || hash.startsWith('/update-password')) return 'update_password';
-  if (hash.startsWith('/portal/admin/reports')) return 'reports';
-  if (hash.startsWith('/portal/admin/audits')) return 'audits';
-  if (hash.startsWith('/portal/admin/catalog')) return 'catalog';
-  if (hash.startsWith('/portal/admin/accounts')) return 'accounts';
-  if (hash.startsWith('/portal/admin/applications')) return 'applications';
-  if (hash.startsWith('/portal/admin')) return 'dashboard';
-  if (hash.startsWith('/apply')) return 'apply';
-  if (hash.startsWith('/status')) return 'status';
-  if (hash.startsWith('/download')) return 'download';
-  if (hash.startsWith('/install-guide')) return 'install_guide';
-  if (hash.startsWith('/about')) return 'about';
-  if (hash.startsWith('/faq')) return 'faq';
-  if (hash.startsWith('/contact')) return 'contact';
-  if (hash.startsWith('/safety')) return 'safety';
-  if (hash.startsWith('/report-abuse')) return 'report_abuse';
-  if (hash.startsWith('/terms')) return 'terms';
-  if (hash.startsWith('/privacy')) return 'privacy';
-  if (hash.startsWith('/cookie-policy')) return 'cookie_policy';
-  if (hash.startsWith('/dispute-policy')) return 'dispute_policy';
-  if (hash.startsWith('/cancellation-policy')) return 'cancellation_policy';
-  return 'home';
+  if (hash.startsWith('/portal/admin/applications/')) {
+    const rawId = hash.replace('/portal/admin/applications/', '').split('?')[0];
+    if (rawId && rawId !== 'pending' && rawId !== 'more-info' && rawId !== 'approved' && rawId !== 'rejected') {
+      return { page: 'application_detail', appId: rawId };
+    }
+  }
+
+  if (hash.startsWith('/portal/admin/reports')) return { page: 'reports' };
+  if (hash.startsWith('/portal/admin/audits')) return { page: 'audits' };
+  if (hash.startsWith('/portal/admin/catalog')) return { page: 'catalog' };
+  if (hash.startsWith('/portal/admin/accounts')) return { page: 'accounts' };
+  if (hash.startsWith('/portal/admin/applications')) return { page: 'applications' };
+  if (hash.startsWith('/portal/admin/pending')) return { page: 'pending' };
+  if (hash.startsWith('/portal/admin/more-info')) return { page: 'more_info' };
+  if (hash.startsWith('/portal/admin/approved')) return { page: 'approved' };
+  if (hash.startsWith('/portal/admin/rejected')) return { page: 'rejected' };
+  if (hash.startsWith('/portal/admin/settings')) return { page: 'settings' };
+  if (hash.startsWith('/portal/admin')) return { page: 'dashboard' };
+
+  if (hash.startsWith('/apply')) return { page: 'apply' };
+  if (hash.startsWith('/status')) return { page: 'status' };
+  if (hash.startsWith('/download')) return { page: 'download' };
+  if (hash.startsWith('/install-guide')) return { page: 'install_guide' };
+  if (hash.startsWith('/about')) return { page: 'about' };
+  if (hash.startsWith('/faq')) return { page: 'faq' };
+  if (hash.startsWith('/contact')) return { page: 'contact' };
+  if (hash.startsWith('/safety')) return { page: 'safety' };
+  if (hash.startsWith('/report-abuse')) return { page: 'report_abuse' };
+  if (hash.startsWith('/terms')) return { page: 'terms' };
+  if (hash.startsWith('/privacy')) return { page: 'privacy' };
+  if (hash.startsWith('/cookie-policy')) return { page: 'cookie_policy' };
+  if (hash.startsWith('/dispute-policy')) return { page: 'dispute_policy' };
+  if (hash.startsWith('/cancellation-policy')) return { page: 'cancellation_policy' };
+
+  return { page: 'home' };
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>(getInitialPage());
+  const initialRoute = parseHashRoute();
+  const [page, setPage] = useState<Page>(initialRoute.page);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | undefined>(initialRoute.appId);
   const [selectedApplication, setSelectedApplication] = useState<WorkerVerification | null>(null);
   const [handoffCode, setHandoffCode] = useState('');
   const [handoffContext, setHandoffContext] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = parseHashRoute();
+      setPage(route.page);
+      setSelectedApplicationId(route.appId);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -110,42 +140,55 @@ export default function App() {
   }, []);
 
   const navigate = (targetPage: string, data?: unknown) => {
-    if (targetPage === 'application_detail' && data) {
-      setSelectedApplication(data as WorkerVerification);
+    let targetHash = '/';
+    if (targetPage === 'application_detail') {
+      const appObj = data as WorkerVerification | undefined;
+      const appId = typeof data === 'string' ? data : appObj?.id || selectedApplicationId;
+      if (appObj && typeof data !== 'string') {
+        setSelectedApplication(appObj);
+      }
+      if (appId) {
+        setSelectedApplicationId(appId);
+        targetHash = `/portal/admin/applications/${appId}`;
+      } else {
+        targetHash = '/portal/admin/applications';
+      }
+    } else {
+      const routeByPage: Partial<Record<Page, string>> = {
+        home: '/',
+        apply: '/apply',
+        status: '/status',
+        dashboard: '/portal/admin',
+        reports: '/portal/admin/reports',
+        applications: '/portal/admin/applications',
+        pending: '/portal/admin/pending',
+        more_info: '/portal/admin/more-info',
+        approved: '/portal/admin/approved',
+        rejected: '/portal/admin/rejected',
+        catalog: '/portal/admin/catalog',
+        accounts: '/portal/admin/accounts',
+        audits: '/portal/admin/audits',
+        settings: '/portal/admin/settings',
+        update_password: '/update-password',
+        download: '/download',
+        install_guide: '/install-guide',
+        payment_gateway: '/payment-gateway',
+        about: '/about',
+        faq: '/faq',
+        contact: '/contact',
+        safety: '/safety',
+        report_abuse: '/report-abuse',
+        terms: '/terms',
+        privacy: '/privacy',
+        cookie_policy: '/cookie-policy',
+        dispute_policy: '/dispute-policy',
+        cancellation_policy: '/cancellation-policy',
+      };
+      targetHash = routeByPage[targetPage as Page] || '/';
     }
+
     setPage(targetPage as Page);
-    const routeByPage: Partial<Record<Page, string>> = {
-      home: '/',
-      apply: '/apply',
-      status: '/status',
-      dashboard: '/portal/admin',
-      reports: '/portal/admin/reports',
-      applications: '/portal/admin/applications',
-      pending: '/portal/admin/pending',
-      more_info: '/portal/admin/more-info',
-      approved: '/portal/admin/approved',
-      rejected: '/portal/admin/rejected',
-      catalog: '/portal/admin/catalog',
-      accounts: '/portal/admin/accounts',
-      audits: '/portal/admin/audits',
-      settings: '/portal/admin/settings',
-      update_password: '/update-password',
-      download: '/download',
-      install_guide: '/install-guide',
-      payment_gateway: '/payment-gateway',
-      about: '/about',
-      faq: '/faq',
-      contact: '/contact',
-      safety: '/safety',
-      report_abuse: '/report-abuse',
-      terms: '/terms',
-      privacy: '/privacy',
-      cookie_policy: '/cookie-policy',
-      dispute_policy: '/dispute-policy',
-      cancellation_policy: '/cancellation-policy',
-    };
-    const route = routeByPage[targetPage as Page];
-    if (route) window.location.hash = route;
+    window.location.hash = targetHash;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -178,8 +221,14 @@ export default function App() {
       );
     }
 
-    if (page === 'application_detail' && selectedApplication) {
-      return <ApplicationDetail application={selectedApplication} onNavigate={navigate} />;
+    if (page === 'application_detail') {
+      return (
+        <ApplicationDetail
+          application={selectedApplication}
+          applicationId={selectedApplicationId}
+          onNavigate={navigate}
+        />
+      );
     }
 
     if (page === 'audits') return <AuditLogPage onNavigate={navigate} />;
