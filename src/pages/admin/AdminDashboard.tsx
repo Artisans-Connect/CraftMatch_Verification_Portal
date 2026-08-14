@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Users, FileText, Zap } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Users, FileText, Zap, DollarSign, Activity, ShieldCheck, UserX } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { adminGet } from '../../lib/api';
@@ -7,6 +7,31 @@ import type { WorkerVerification } from '../../types';
 
 interface AdminDashboardProps {
   onNavigate: (page: string, data?: unknown) => void;
+}
+
+interface DashboardOpStats {
+  escrow: {
+    total_locked: number;
+    platform_fees: number;
+  };
+  jobs: {
+    total: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+  };
+  users: {
+    totalAccounts: number;
+    suspendedAccounts: number;
+    totalWorkers: number;
+    verifiedWorkers: number;
+  };
+  recent_transactions: Array<{
+    id: string;
+    amount: number;
+    transaction_type: string;
+    created_at: string;
+  }>;
 }
 
 const statusColors: Record<string, string> = {
@@ -19,17 +44,22 @@ const statusColors: Record<string, string> = {
 
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [applications, setApplications] = useState<WorkerVerification[]>([]);
+  const [opStats, setOpStats] = useState<DashboardOpStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    adminGet<WorkerVerification[]>('/verification/admin/applications')
-      .then((data) => {
-        setApplications(data);
+    Promise.all([
+      adminGet<WorkerVerification[]>('/verification/admin/applications'),
+      adminGet<DashboardOpStats>('/admin/dashboard-stats').catch(() => null),
+    ])
+      .then(([apps, ops]) => {
+        setApplications(apps || []);
+        setOpStats(ops);
         setLoadError('');
       })
       .catch((error) => {
-        setLoadError(error instanceof Error ? error.message : 'Could not load applications.');
+        setLoadError(error instanceof Error ? error.message : 'Could not load dashboard data.');
       })
       .finally(() => {
         setLoading(false);
@@ -88,7 +118,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
               <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
-            <p className="text-text-muted text-sm">Loading dashboard...</p>
+            <p className="text-text-muted text-sm">Loading operational dashboard...</p>
           </div>
         </div>
       </AdminLayout>
@@ -103,7 +133,75 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             <p className="text-sm text-error">{loadError}</p>
           </div>
         )}
-        {/* Stats */}
+
+        {/* Operational Overview Section */}
+        {opStats && (
+          <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 p-5 rounded-2xl text-white shadow-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                <Activity size={18} />
+                Live Platform Operations & Financials
+              </h2>
+              <span className="text-[11px] bg-white/10 text-neutral-300 px-2.5 py-0.5 rounded-full font-mono">
+                Realtime Data
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
+                  <DollarSign size={14} className="text-emerald-400" />
+                  Locked Escrow
+                </div>
+                <p className="text-2xl font-black text-emerald-400 font-mono">
+                  GH₵ {(opStats.escrow.total_locked || 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-neutral-400 mt-1">Active jobs balance</p>
+              </div>
+
+              <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
+                  <TrendingUp size={14} className="text-amber-400" />
+                  Platform Revenue (10%)
+                </div>
+                <p className="text-2xl font-black text-amber-400 font-mono">
+                  GH₵ {(opStats.escrow.platform_fees || 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-neutral-400 mt-1">Commission earned</p>
+              </div>
+
+              <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
+                  <Activity size={14} className="text-blue-400" />
+                  Active Jobs Pipeline
+                </div>
+                <p className="text-2xl font-black text-blue-400 font-mono">
+                  {opStats.jobs.active} <span className="text-xs font-normal text-neutral-400">/ {opStats.jobs.total} total</span>
+                </p>
+                <p className="text-[10px] text-neutral-400 mt-1">{opStats.jobs.completed} completed • {opStats.jobs.cancelled} cancelled</p>
+              </div>
+
+              <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
+                  <ShieldCheck size={14} className="text-purple-400" />
+                  Verified Network
+                </div>
+                <p className="text-2xl font-black text-purple-300 font-mono">
+                  {opStats.users.verifiedWorkers} <span className="text-xs font-normal text-neutral-400">/ {opStats.users.totalWorkers} workers</span>
+                </p>
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  {opStats.users.suspendedAccounts > 0 ? (
+                    <span className="text-red-400 font-bold">{opStats.users.suspendedAccounts} suspended</span>
+                  ) : (
+                    <span>0 suspended accounts</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, i) => {
             const Icon = card.icon;
