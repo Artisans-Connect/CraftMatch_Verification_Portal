@@ -11,25 +11,45 @@ interface AdminLayoutProps {
   onNavigate?: (page: string) => void;
 }
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, route: '/portal/admin' },
-  { id: 'reports', label: 'Trust & Safety', icon: ShieldAlert, route: '/portal/admin/reports' },
-  { id: 'applications', label: 'All Applications', icon: FileText, route: '/portal/admin/applications' },
-  { id: 'pending', label: 'Pending Reviews', icon: Clock, route: '/portal/admin/pending' },
-  { id: 'more_info', label: 'More Info Needed', icon: AlertCircle, route: '/portal/admin/more-info' },
-  { id: 'approved', label: 'Approved', icon: CheckCircle, route: '/portal/admin/approved' },
-  { id: 'rejected', label: 'Rejected', icon: XCircle, route: '/portal/admin/rejected' },
-  { id: 'catalog', label: 'Service Catalog', icon: Layers3, route: '/portal/admin/catalog' },
-  { id: 'accounts', label: 'Accounts', icon: Users, route: '/portal/admin/accounts' },
-  { id: 'audits', label: 'Audit Log', icon: ClipboardList, route: '/portal/admin/audits' },
-  { id: 'settings', label: 'Settings', icon: Settings, route: '/portal/admin/settings' },
+const navSections = [
+  {
+    title: 'Overview',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, route: '/portal/admin' },
+    ],
+  },
+  {
+    title: 'Verification & Safety',
+    items: [
+      { id: 'applications', label: 'Applications Queue', icon: FileText, route: '/portal/admin/applications' },
+      { id: 'pending', label: 'Pending Reviews', icon: Clock, route: '/portal/admin/pending' },
+      { id: 'more_info', label: 'Awaiting Docs', icon: AlertCircle, route: '/portal/admin/more-info' },
+      { id: 'reports', label: 'Trust & Safety', icon: ShieldAlert, route: '/portal/admin/reports' },
+    ],
+  },
+  {
+    title: 'Management',
+    items: [
+      { id: 'accounts', label: 'Accounts Manager', icon: Users, route: '/portal/admin/accounts' },
+      { id: 'catalog', label: 'Service Catalog', icon: Layers3, route: '/portal/admin/catalog' },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { id: 'audits', label: 'Audit Trail', icon: ClipboardList, route: '/portal/admin/audits' },
+      { id: 'settings', label: 'System Settings', icon: Settings, route: '/portal/admin/settings' },
+    ],
+  },
 ];
+
+const allNavItems = navSections.flatMap((s) => s.items);
 
 export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const handleNavigate = (item: typeof navItems[0]) => {
+  const handleNavigate = (item: typeof allNavItems[0]) => {
     window.location.hash = item.route;
     setIsMobileOpen(false);
     if (onNavigate) onNavigate(item.id);
@@ -71,23 +91,32 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            const isCollapsedState = collapsed && !isMobileOpen;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigate(item)}
-                className={`w-full text-left ${isActive ? 'sidebar-item-active' : 'sidebar-item'} ${isCollapsedState ? 'justify-center px-2' : ''}`}
-                title={isCollapsedState ? item.label : undefined}
-              >
-                <Icon size={18} className="flex-shrink-0" />
-                {(!collapsed || isMobileOpen) && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto scrollbar-hide">
+          {navSections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              {(!collapsed || isMobileOpen) && (
+                <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400 mb-1">
+                  {section.title}
+                </p>
+              )}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                const isCollapsedState = collapsed && !isMobileOpen;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item)}
+                    className={`w-full text-left ${isActive ? 'sidebar-item-active' : 'sidebar-item'} ${isCollapsedState ? 'justify-center px-2' : ''}`}
+                    title={isCollapsedState ? item.label : undefined}
+                  >
+                    <Icon size={18} className="flex-shrink-0" />
+                    {(!collapsed || isMobileOpen) && <span>{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
@@ -124,7 +153,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
             </button>
             <div>
               <h1 className="text-lg font-bold text-text-primary capitalize">
-                {navItems.find(n => n.id === currentPage)?.label || 'Dashboard'}
+                {allNavItems.find(n => n.id === currentPage)?.label || 'Dashboard'}
               </h1>
               <p className="text-xs text-text-muted">Artisans Verification Portal</p>
             </div>
