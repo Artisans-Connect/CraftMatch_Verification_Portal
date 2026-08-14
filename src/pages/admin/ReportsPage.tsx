@@ -36,6 +36,53 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
   const [resolutionReason, setResolutionReason] = useState('');
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
+  // Direct Account Action state
+  const [suspensionModalOpen, setSuspensionModalOpen] = useState(false);
+  const [suspensionReasonInput, setSuspensionReasonInput] = useState('');
+  const [isAccountActioning, setIsAccountActioning] = useState(false);
+
+  const handleToggleAccountSuspension = async () => {
+    if (!reportDetail?.reported?.id) return;
+    const isSuspended = reportDetail.reported.account_status === 'suspended';
+    const userId = reportDetail.reported.id;
+
+    if (!isSuspended && !suspensionModalOpen) {
+      setSuspensionModalOpen(true);
+      return;
+    }
+
+    setIsAccountActioning(true);
+    try {
+      if (isSuspended) {
+        await adminPatch(`/admin/accounts/${userId}/reactivate`, {});
+        alert('Account reactivated successfully.');
+      } else {
+        if (!suspensionReasonInput.trim()) {
+          alert('Suspension reason is required.');
+          setIsAccountActioning(false);
+          return;
+        }
+        await adminPatch(`/admin/accounts/${userId}/suspend`, {
+          reason: suspensionReasonInput.trim(),
+        });
+        alert('Account suspended successfully and audit log created.');
+      }
+      setSuspensionModalOpen(false);
+      setSuspensionReasonInput('');
+
+      // Refresh current report detail & reports list
+      if (selectedReportId) {
+        const refreshedDetail = await adminGet<AdminReport>(`/admin/reports/${selectedReportId}`);
+        setReportDetail(refreshedDetail);
+      }
+      fetchReports();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Account action failed.');
+    } finally {
+      setIsAccountActioning(false);
+    }
+  };
+
   const fetchReports = async () => {
     setLoading(true);
     setError(null);
@@ -401,7 +448,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                         <p className="font-bold text-neutral-900">{reportDetail.reported.full_name}</p>
                         <p className="text-xs text-neutral-600">ID: {reportDetail.reported.id}</p>
                         <p className="text-xs text-neutral-600">Phone: {reportDetail.reported.phone || 'N/A'}</p>
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
                             reportDetail.reported.account_status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                           }`}>
@@ -413,6 +460,63 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                             </span>
                           )}
                         </div>
+
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                          {reportDetail.reported.account_status === 'suspended' ? (
+                            <button
+                              onClick={handleToggleAccountSuspension}
+                              disabled={isAccountActioning}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded transition-colors disabled:opacity-50"
+                            >
+                              {isAccountActioning ? 'Reactivating...' : 'Reactivate Account'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setSuspensionModalOpen(true)}
+                              disabled={isAccountActioning}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded transition-colors disabled:opacity-50"
+                            >
+                              Suspend Account
+                            </button>
+                          )}
+                          {onNavigate && (
+                            <button
+                              onClick={() => { setSelectedReportId(null); onNavigate('accounts'); }}
+                              className="px-2 py-1 text-neutral-600 hover:text-neutral-900 text-[11px] font-medium underline"
+                            >
+                              View in Accounts
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Suspension Reason Prompt Inline */}
+                        {suspensionModalOpen && (
+                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg space-y-2 text-xs">
+                            <p className="font-bold text-red-800">Reason for Account Suspension:</p>
+                            <input
+                              type="text"
+                              placeholder="e.g. Safety policy violation ticket #..."
+                              value={suspensionReasonInput}
+                              onChange={(e) => setSuspensionReasonInput(e.target.value)}
+                              className="w-full p-2 border border-red-300 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-red-500"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => { setSuspensionModalOpen(false); setSuspensionReasonInput(''); }}
+                                className="px-2 py-1 bg-neutral-200 text-neutral-700 rounded text-[10px] font-medium"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleToggleAccountSuspension}
+                                disabled={isAccountActioning || !suspensionReasonInput.trim()}
+                                className="px-2.5 py-1 bg-red-600 text-white rounded text-[10px] font-bold disabled:opacity-50"
+                              >
+                                {isAccountActioning ? 'Suspending...' : 'Confirm Suspension'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-xs text-neutral-500">No specific user reported (General Platform Issue)</p>
