@@ -47,6 +47,27 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [tierOverride, setTierOverride] = useState<'identity' | 'professional' | 'master'>('identity');
+  const [updatingTier, setUpdatingTier] = useState(false);
+
+  const handleUpdateTier = async (accountId: string, level: 'identity' | 'professional' | 'master', isVerified = true) => {
+    setUpdatingTier(true);
+    setError('');
+    try {
+      await adminPatch(`/admin/accounts/${accountId}/tier`, {
+        verification_level: level,
+        is_verified: isVerified,
+      });
+      setMessage(`Updated artisan verification level to ${level.toUpperCase()}.`);
+      const updated = await adminGet<AdminAccountDetail>(`/admin/accounts/${accountId}`);
+      setSelected(updated);
+      loadAccounts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update tier.');
+    } finally {
+      setUpdatingTier(false);
+    }
+  };
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -302,6 +323,10 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                   detail={selected}
                   reason={suspensionReason}
                   saving={saving}
+                  tierOverride={tierOverride}
+                  updatingTier={updatingTier}
+                  onTierChange={setTierOverride}
+                  onUpdateTier={handleUpdateTier}
                   onReasonChange={setSuspensionReason}
                   onClose={() => setSelected(null)}
                   onSuspend={suspendAccount}
@@ -320,6 +345,10 @@ function AccountDrawer({
   detail,
   reason,
   saving,
+  tierOverride,
+  updatingTier,
+  onTierChange,
+  onUpdateTier,
   onReasonChange,
   onClose,
   onSuspend,
@@ -328,6 +357,10 @@ function AccountDrawer({
   detail: AdminAccountDetail;
   reason: string;
   saving: boolean;
+  tierOverride: 'identity' | 'professional' | 'master';
+  updatingTier: boolean;
+  onTierChange: (val: 'identity' | 'professional' | 'master') => void;
+  onUpdateTier: (accountId: string, level: 'identity' | 'professional' | 'master', isVerified: boolean) => void;
   onReasonChange: (value: string) => void;
   onClose: () => void;
   onSuspend: () => void;
@@ -337,16 +370,18 @@ function AccountDrawer({
   const isSuspended = detail.profile.account_status === 'suspended';
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="card p-6 space-y-6 animate-fade-in border-2 border-primary/20">
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-text-primary">{detail.profile.full_name || 'Unnamed account'}</h3>
-          <p className="text-sm text-text-muted">{detail.auth_user?.email || detail.profile.phone || detail.profile.id}</p>
+          <h3 className="text-xl font-bold text-text-primary">{detail.profile.full_name || 'Unnamed Account'}</h3>
+          <p className="text-xs text-text-muted">Account inspection drawer</p>
         </div>
-        <button className="btn-ghost" onClick={onClose}><X size={18} /></button>
+        <button className="p-2 rounded-xl hover:bg-neutral-100 text-text-muted hover:text-text-primary" onClick={onClose}>
+          <X size={18} />
+        </button>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <InfoTile label="Account" value={detail.profile.account_status} icon={isSuspended ? ShieldOff : UserCheck} tone={isSuspended ? 'text-error' : 'text-success-dark'} />
         <InfoTile label="Role" value={worker ? 'Worker' : 'Client'} icon={Users} tone="text-primary" />
         <InfoTile label="Jobs" value={String(worker?.total_jobs ?? detail.recent_jobs.length)} icon={CheckCircle} tone="text-info-dark" />
@@ -390,14 +425,51 @@ function AccountDrawer({
       </section>
 
       {worker && (
-        <section className="card p-4">
-          <h4 className="font-bold text-text-primary mb-3">Worker status</h4>
-          <div className="flex flex-wrap gap-2 mb-3">
-            <span className={`badge ${worker.is_verified ? 'badge-approved' : 'badge-pending'}`}>{worker.is_verified ? 'Verified' : 'Unverified'}</span>
-            <span className={`badge ${worker.is_available ? 'badge-approved' : 'badge-rejected'}`}>{worker.is_available ? 'Available' : 'Unavailable'}</span>
+        <section className="card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-text-primary">Worker Status & Tier</h4>
+            <span className={`px-2.5 py-0.5 text-xs font-bold rounded ${worker.is_verified ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'}`}>
+              {worker.is_verified ? 'Verified Worker' : 'Unverified Worker'}
+            </span>
           </div>
-          <p className="text-sm text-text-secondary">Skills: {worker.skills?.join(', ') || '—'}</p>
-          <p className="text-sm text-text-secondary">Service areas: {worker.service_areas?.join(', ') || '—'}</p>
+
+          <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2.5">
+            <p className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Quick Tier Level Override</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={tierOverride}
+                onChange={(e) => onTierChange(e.target.value as any)}
+                className="p-2 border border-neutral-300 rounded-lg text-xs bg-white font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="identity">🛡️ Identity Verified</option>
+                <option value="professional">⭐️ Professional Artisan</option>
+                <option value="master">👑 Master Artisan</option>
+              </select>
+
+              <button
+                disabled={updatingTier}
+                onClick={() => onUpdateTier(detail.profile.id, tierOverride, true)}
+                className="px-3.5 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-lg shadow-sm transition-colors disabled:opacity-50"
+              >
+                {updatingTier ? 'Updating...' : 'Set Tier'}
+              </button>
+
+              {worker.is_verified && (
+                <button
+                  disabled={updatingTier}
+                  onClick={() => onUpdateTier(detail.profile.id, 'identity', false)}
+                  className="px-3 py-2 bg-neutral-200 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Revoke Verification
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="text-xs space-y-1 text-text-secondary pt-1">
+            <p><strong>Skills:</strong> {worker.skills?.join(', ') || '—'}</p>
+            <p><strong>Service areas:</strong> {worker.service_areas?.join(', ') || '—'}</p>
+          </div>
         </section>
       )}
 
