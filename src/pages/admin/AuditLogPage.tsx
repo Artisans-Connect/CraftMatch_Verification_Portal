@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, FileText, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, FileText, Clock, Search, ShieldCheck } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { adminGet } from '../../lib/api';
 import type { VerificationAuditLog, AuditAction } from '../../types';
@@ -18,14 +18,26 @@ const actionConfig: Record<AuditAction, { label: string; icon: React.ElementType
   status_changed: { label: 'Status Changed', icon: Clock, color: 'text-text-muted', bg: 'bg-neutral-100' },
 };
 
+const allActions: (AuditAction | 'all')[] = [
+  'all',
+  'submitted',
+  'reviewed',
+  'approved',
+  'rejected',
+  'more_info_requested',
+  'documents_uploaded',
+  'status_changed',
+];
+
 export function AuditLogPage({ onNavigate }: AuditLogPageProps) {
   const [logs, setLogs] = useState<(VerificationAuditLog & { worker_verifications?: { full_name: string; application_number: string } })[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState<AuditAction | 'all'>('all');
+  const [search, setSearch] = useState('');
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    adminGet<typeof logs>('/verification/admin/audit-logs?limit=100')
+    adminGet<typeof logs>('/verification/admin/audit-logs?limit=200')
       .then((data) => {
         setLogs(data);
         setLoadError('');
@@ -36,31 +48,59 @@ export function AuditLogPage({ onNavigate }: AuditLogPageProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = actionFilter === 'all' ? logs : logs.filter(l => l.action === actionFilter);
+  const filtered = logs.filter((l) => {
+    if (actionFilter !== 'all' && l.action !== actionFilter) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const name = (l.worker_verifications?.full_name || '').toLowerCase();
+      const appNum = (l.worker_verifications?.application_number || '').toLowerCase();
+      const admin = (l.admin_name || '').toLowerCase();
+      const notes = (l.notes || '').toLowerCase();
+      return name.includes(q) || appNum.includes(q) || admin.includes(q) || notes.includes(q);
+    }
+    return true;
+  });
 
   return (
     <AdminLayout currentPage="audits" onNavigate={onNavigate}>
       <div className="space-y-4 animate-fade-in">
-        {/* Filters */}
         {loadError && (
           <div className="card p-4 border border-error/20 bg-error-light/30">
             <p className="text-sm text-error">{loadError}</p>
           </div>
         )}
-        <div className="card p-4 flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-semibold text-text-primary">Filter by action:</span>
-          <div className="flex gap-2 flex-wrap">
-            {(['all', 'submitted', 'approved', 'rejected', 'more_info_requested'] as const).map(action => (
+
+        {/* Filter & Search Bar */}
+        <div className="card p-4 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search audit trail by applicant name, app #, admin, or notes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+            <span className="text-xs text-neutral-400 font-mono">
+              Showing {filtered.length} of {logs.length} audit logs
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-neutral-100">
+            <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider mr-1">Action:</span>
+            {allActions.map((action) => (
               <button
                 key={action}
                 onClick={() => setActionFilter(action)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                   actionFilter === action
-                    ? 'bg-primary text-white'
+                    ? 'bg-primary text-white shadow-sm'
                     : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
                 }`}
               >
-                {action === 'all' ? 'All' : action.replace(/_/g, ' ')}
+                {action === 'all' ? 'All Actions' : action.replace(/_/g, ' ')}
               </button>
             ))}
           </div>

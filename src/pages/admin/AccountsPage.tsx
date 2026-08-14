@@ -369,6 +369,13 @@ function AccountDrawer({
   const worker = workerFrom(detail.profile);
   const isSuspended = detail.profile.account_status === 'suspended';
 
+  useEffect(() => {
+    const currentLevel = (detail.verifications?.[0]?.verification_level || 'identity') as 'identity' | 'professional' | 'master';
+    if (['identity', 'professional', 'master'].includes(currentLevel)) {
+      onTierChange(currentLevel);
+    }
+  }, [detail.profile.id]);
+
   return (
     <div className="card p-6 space-y-6 animate-fade-in border-2 border-primary/20">
       <div className="flex items-center justify-between">
