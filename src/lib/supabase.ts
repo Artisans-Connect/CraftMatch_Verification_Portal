@@ -14,3 +14,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: true },
   realtime: { params: { eventsPerSecond: 2 } },
 });
+
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseAdminClient = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+      realtime: { params: { eventsPerSecond: 2 } },
+    })
+  : supabase;
+
