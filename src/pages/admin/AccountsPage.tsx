@@ -47,10 +47,10 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [tierOverride, setTierOverride] = useState<'identity' | 'professional' | 'master'>('identity');
+  const [tierOverride, setTierOverride] = useState<'identity' | 'professional' | 'premium'>('identity');
   const [updatingTier, setUpdatingTier] = useState(false);
 
-  const handleUpdateTier = async (accountId: string, level: 'identity' | 'professional' | 'master', isVerified = true) => {
+  const handleUpdateTier = async (accountId: string, level: 'identity' | 'professional' | 'premium', isVerified = true) => {
     setUpdatingTier(true);
     setError('');
     try {
@@ -357,10 +357,10 @@ function AccountDrawer({
   detail: AdminAccountDetail;
   reason: string;
   saving: boolean;
-  tierOverride: 'identity' | 'professional' | 'master';
+  tierOverride: 'identity' | 'professional' | 'premium';
   updatingTier: boolean;
-  onTierChange: (val: 'identity' | 'professional' | 'master') => void;
-  onUpdateTier: (accountId: string, level: 'identity' | 'professional' | 'master', isVerified: boolean) => void;
+  onTierChange: (val: 'identity' | 'professional' | 'premium') => void;
+  onUpdateTier: (accountId: string, level: 'identity' | 'professional' | 'premium', isVerified: boolean) => void;
   onReasonChange: (value: string) => void;
   onClose: () => void;
   onSuspend: () => void;
@@ -370,8 +370,8 @@ function AccountDrawer({
   const isSuspended = detail.profile.account_status === 'suspended';
 
   useEffect(() => {
-    const currentLevel = (detail.verifications?.[0]?.verification_level || 'identity') as 'identity' | 'professional' | 'master';
-    if (['identity', 'professional', 'master'].includes(currentLevel)) {
+    const currentLevel = (detail.verifications?.[0]?.verification_level || 'identity') as 'identity' | 'professional' | 'premium';
+    if (['identity', 'professional', 'premium'].includes(currentLevel)) {
       onTierChange(currentLevel);
     }
   }, [detail.profile.id]);
@@ -450,7 +450,7 @@ function AccountDrawer({
               >
                 <option value="identity">🛡️ Identity Verified</option>
                 <option value="professional">⭐️ Professional Artisan</option>
-                <option value="master">👑 Master Artisan</option>
+                <option value="premium">👑 Master Artisan</option>
               </select>
 
               <button
