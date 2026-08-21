@@ -49,36 +49,6 @@ const emptyForm: ApplicationFormData = {
   agreedToTerms: false,
 };
 
-function computeConfidenceScore(form: ApplicationFormData): number {
-  let score = 30; // base
-  if (form.documents.id_front) score += 15;
-  if (form.documents.id_back) score += 10;
-  if (form.documents.selfie) score += 15;
-  if (form.documents.certifications.length > 0) score += 10;
-  if (form.documents.portfolio.length > 0) score += 5;
-  if (form.references.filter(r => r.reference_name && r.phone_number).length >= 2) score += 10;
-  if (form.professional.years_of_experience >= 5) score += 5;
-  return Math.min(score, 100);
-}
-
-function computeFraudIndicators(form: ApplicationFormData): string[] {
-  const indicators: string[] = [];
-  if (!form.documents.selfie) indicators.push('missing_selfie');
-  if (!form.documents.id_front || !form.documents.id_back) indicators.push('low_quality_id');
-  if (form.references.filter(r => r.reference_name && r.phone_number).length === 0) indicators.push('no_references');
-  return indicators;
-}
-
-async function toBase64(file: File): Promise<string> {
-  const reader = new FileReader();
-  const result = await new Promise<string>((resolve, reject) => {
-    reader.onload = () => resolve(String(reader.result ?? '').split(',')[1] ?? '');
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-  return result;
-}
-
 export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPageProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<ApplicationFormData>(emptyForm);

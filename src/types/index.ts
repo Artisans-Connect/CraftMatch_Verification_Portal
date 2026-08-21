@@ -145,7 +145,7 @@ export interface AdminAccount {
   signup_type: string | null;
   last_active_mode: string | null;
   avatar_url: string | null;
-  account_status: 'active' | 'suspended';
+  account_status: 'active' | 'suspended' | 'warned' | string;
   suspended_at: string | null;
   suspension_reason: string | null;
   created_at: string;
@@ -276,3 +276,46 @@ export interface AdminReport {
   audit_logs?: ReportAuditLog[];
   repeat_offender_risk?: RepeatOffenderRisk | null;
 }
+
+export type ReleasePlatform = 'android' | 'ios' | 'windows' | 'macos' | 'web';
+
+export interface AppReleaseLink {
+  platform: ReleasePlatform;
+  label: string;
+  href: string;
+  version?: string;
+  fileSize?: string;
+  fileSizeBytes?: number;
+  sha256?: string;
+  minRequirement?: string;
+  available: boolean;
+  external?: boolean;
+}
+
+export interface AppReleaseResponse {
+  appName: string;
+  latestVersion: string;
+  updatedAt: string;
+  releaseNotes?: string;
+  links: AppReleaseLink[];
+}
+
+export interface BuildTriggerParams {
+  version?: string;
+  releaseNotes?: string;
+  releaseType?: 'release' | 'debug';
+}
+
+export interface BuildStatusResponse {
+  status: 'idle' | 'queued' | 'in_progress' | 'completed';
+  conclusion: 'success' | 'failure' | 'cancelled' | 'timed_out' | null;
+  runId?: number;
+  runUrl?: string;
+  runName?: string;
+  version?: string;
+  startedAt?: string;
+  updatedAt?: string;
+  durationSeconds?: number;
+  message?: string;
+}
+

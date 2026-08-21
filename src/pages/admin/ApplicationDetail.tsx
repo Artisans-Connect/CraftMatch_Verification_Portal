@@ -150,6 +150,8 @@ export function ApplicationDetail({ application: initialApplication, application
         };
       }
 
+      if (!application) return;
+
       // Update verification — realtime channel will also pick this up
       const data = await adminPatch<WorkerVerification>(
         `/verification/admin/applications/${application.id}/status`,
@@ -169,7 +171,7 @@ export function ApplicationDetail({ application: initialApplication, application
   };
 
   const handleMarkUnderReview = async () => {
-    if (application.status !== 'pending') return;
+    if (!application || application.status !== 'pending') return;
     try {
       const data = await adminPatch<WorkerVerification>(
         `/verification/admin/applications/${application.id}/status`,

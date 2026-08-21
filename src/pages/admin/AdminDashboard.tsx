@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Users, FileText, Zap, DollarSign, Activity, ShieldCheck, UserX } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Users, FileText, Zap, DollarSign, Activity, ShieldCheck } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { adminGet } from '../../lib/api';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Shield, LayoutDashboard, FileText, CheckCircle, XCircle,
+  Shield, LayoutDashboard, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight, LogOut,
   Clock, AlertCircle, Layers3, Users, Menu, ShieldAlert
 } from 'lucide-react';

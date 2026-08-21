@@ -19,31 +19,43 @@ import {
   Sparkles,
   Users,
   AlertCircle,
-  FileText,
   MessageSquare,
-  Ban,
-  X,
   ShieldCheck,
   AlertOctagon,
+  Download,
+  UploadCloud,
+  ExternalLink,
+  Play,
+  Layers,
+  CloudLightning,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { adminGet, adminPatch, adminPost } from '../../lib/api';
-import type { AdminAccount, AdminAccountDetail, AdminAccountWorker, AdminReport } from '../../types';
+import { adminGet, adminPatch, adminPost, adminPut, adminPostMultipart } from '../../lib/api';
+import type {
+  AdminAccount,
+  AdminAccountDetail,
+  AdminReport,
+  AppReleaseResponse,
+  AppReleaseLink,
+  BuildStatusResponse,
+} from '../../types';
 
 interface SettingsPageProps {
   onNavigate: (page: string, data?: unknown) => void;
-  initialTab?: 'broadcast' | 'blocked' | 'general';
+  initialTab?: 'broadcast' | 'blocked' | 'general' | 'releases';
 }
 
-function workerFrom(account: { workers?: AdminAccountWorker | AdminAccountWorker[] | null }) {
+function workerFrom(account: any) {
+  if (!account) return null;
   if (Array.isArray(account.workers)) return account.workers[0] ?? null;
   return account.workers ?? null;
 }
 
-function displayRole(account: { signup_type?: string | null; role?: string | null; last_active_mode?: string | null; workers?: AdminAccountWorker | AdminAccountWorker[] | null }): 'worker' | 'client' {
+function displayRole(account: any): 'worker' | 'client' {
+  if (!account) return 'client';
   if (workerFrom(account)) return 'worker';
   const role = account.signup_type ?? account.role ?? account.last_active_mode ?? '';
-  return role.toLowerCase().includes('worker') ? 'worker' : 'client';
+  return String(role).toLowerCase().includes('worker') ? 'worker' : 'client';
 }
 
 function formatDate(isoStr: string | null | undefined) {
@@ -63,7 +75,7 @@ function formatDate(isoStr: string | null | undefined) {
 }
 
 export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsPageProps) {
-  const [activeTab, setActiveTab] = useState<'broadcast' | 'blocked' | 'general'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'broadcast' | 'blocked' | 'general' | 'releases'>(initialTab);
   const [blockedAccounts, setBlockedAccounts] = useState<AdminAccount[]>([]);
   const [userReports, setUserReports] = useState<AdminReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +110,24 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [blockTarget, setBlockTarget] = useState<{ accountId: string; name: string; reportId?: string } | null>(null);
   const [blockReasonInput, setBlockReasonInput] = useState('');
+
+  // App Releases & Cloud Build state
+  const [releaseManifest, setReleaseManifest] = useState<AppReleaseResponse | null>(null);
+  const [releaseLoading, setReleaseLoading] = useState(false);
+  const [buildStatus, setBuildStatus] = useState<BuildStatusResponse | null>(null);
+  const [buildModalOpen, setBuildModalOpen] = useState(false);
+  const [buildVersionInput, setBuildVersionInput] = useState('1.0.0');
+  const [buildNotesInput, setBuildNotesInput] = useState('CraftMatch Android Release');
+  const [buildTypeInput, setBuildTypeInput] = useState<'release' | 'debug'>('release');
+  const [isTriggeringBuild, setIsTriggeringBuild] = useState(false);
+  const [isPollingBuild, setIsPollingBuild] = useState(false);
+
+  // Direct APK Upload state
+  const [uploadApkFile, setUploadApkFile] = useState<File | null>(null);
+  const [uploadVersionInput, setUploadVersionInput] = useState('');
+  const [isUploadingApk, setIsUploadingApk] = useState(false);
+  const [isSavingManifest, setIsSavingManifest] = useState(false);
+  const [editableLinks, setEditableLinks] = useState<AppReleaseLink[]>([]);
 
   const templates = [
     {
@@ -339,6 +369,111 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const totalWarned = blockedAccounts.filter((a) => a.account_status === 'warned').length;
   const pendingReportsCount = pendingReportsList.length;
 
+  const loadReleaseManifest = async () => {
+    setReleaseLoading(true);
+    try {
+      const data = await adminGet<AppReleaseResponse>('/releases/app');
+      setReleaseManifest(data);
+      setEditableLinks(data.links || []);
+      setBuildVersionInput(data.latestVersion || '1.0.0');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load release manifest.');
+    } finally {
+      setReleaseLoading(false);
+    }
+  };
+
+  const checkBuildStatus = async () => {
+    try {
+      const status = await adminGet<BuildStatusResponse>('/releases/build-status');
+      setBuildStatus(status);
+      return status;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleTriggerCloudBuild = async () => {
+    setIsTriggeringBuild(true);
+    setError(null);
+    try {
+      const res = await adminPost<{ success: boolean; message: string; version: string; workflowUrl: string }>('/releases/trigger-build', {
+        version: buildVersionInput.trim() || '1.0.0',
+        releaseNotes: buildNotesInput.trim(),
+        releaseType: buildTypeInput,
+      });
+      showToast(res.message || 'Build dispatched to GitHub Actions runner!');
+      setBuildModalOpen(false);
+      await checkBuildStatus();
+      setIsPollingBuild(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to dispatch cloud build.');
+    } finally {
+      setIsTriggeringBuild(false);
+    }
+  };
+
+  const handleUploadApk = async () => {
+    if (!uploadApkFile) {
+      setError('Please select an APK file to upload.');
+      return;
+    }
+    setIsUploadingApk(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadApkFile);
+      if (uploadVersionInput.trim()) {
+        formData.append('version', uploadVersionInput.trim());
+      }
+      await adminPostMultipart('/releases/upload', formData);
+      showToast(`APK ${uploadApkFile.name} uploaded and published successfully!`);
+      setUploadApkFile(null);
+      setUploadVersionInput('');
+      loadReleaseManifest();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload APK.');
+    } finally {
+      setIsUploadingApk(false);
+    }
+  };
+
+  const handleSavePlatformManifest = async () => {
+    setIsSavingManifest(true);
+    setError(null);
+    try {
+      await adminPut('/releases/manifest', {
+        latestVersion: releaseManifest?.latestVersion || '1.0.0',
+        links: editableLinks,
+      });
+      showToast('Platform release configurations saved successfully.');
+      loadReleaseManifest();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save release configurations.');
+    } finally {
+      setIsSavingManifest(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'releases') {
+      loadReleaseManifest();
+      checkBuildStatus();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!isPollingBuild || activeTab !== 'releases') return;
+    const interval = setInterval(async () => {
+      const status = await checkBuildStatus();
+      if (status?.status === 'completed' || status?.conclusion === 'success' || status?.conclusion === 'failure') {
+        setIsPollingBuild(false);
+        loadReleaseManifest();
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [isPollingBuild, activeTab]);
+
   return (
     <AdminLayout currentPage="settings" onNavigate={onNavigate}>
       <div className="max-w-6xl mx-auto space-y-6">
@@ -406,6 +541,20 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
             >
               <Settings size={18} />
               Platform Controls
+            </button>
+            <button
+              onClick={() => setActiveTab('releases')}
+              className={`pb-3 px-4 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors ${
+                activeTab === 'releases'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <Download size={18} />
+              App Releases & Cloud Build
+              {isPollingBuild && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+              )}
             </button>
           </div>
         </div>
@@ -1194,6 +1343,460 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
             </div>
           </div>
         )}
+
+        {/* TAB CONTENT: APP RELEASES & CLOUD BUILD */}
+        {activeTab === 'releases' && (
+          <div className="space-y-6">
+            {/* Top Row: Cloud Build Dispatcher & Status Monitor */}
+            <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 rounded-3xl p-6 md:p-8 text-white shadow-xl space-y-6 border border-neutral-700">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <CloudLightning size={14} />
+                    GitHub Actions Cloud CI/CD Engine
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold">1-Click Android Release Builder</h3>
+                  <p className="text-xs text-neutral-300 mt-1 max-w-xl">
+                    Dispatch an automated cloud runner on GitHub Actions to compile the Flutter Android APK, compute SHA-256 checksums, and publish release assets to high-speed global CDNs.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuildVersionInput(releaseManifest?.latestVersion || '1.0.0');
+                      setBuildModalOpen(true);
+                    }}
+                    className="px-5 py-3 rounded-2xl bg-primary hover:bg-primary-dark text-white text-xs font-bold flex items-center gap-2 shadow-primary-glow transition-all transform hover:scale-[1.02]"
+                  >
+                    <Play size={16} />
+                    Build & Deploy New Release
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => checkBuildStatus()}
+                    className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title="Refresh Build Status"
+                  >
+                    <RefreshCw size={16} className={isPollingBuild ? 'animate-spin text-amber-400' : ''} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Real-Time Build Status Banner */}
+              {buildStatus && (
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base ${
+                        buildStatus.status === 'in_progress' || buildStatus.status === 'queued'
+                          ? 'bg-amber-500/20 text-amber-400 animate-pulse'
+                          : buildStatus.conclusion === 'success'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : buildStatus.conclusion === 'failure'
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-white/10 text-neutral-300'
+                      }`}
+                    >
+                      {buildStatus.status === 'in_progress' || buildStatus.status === 'queued' ? (
+                        <RefreshCw size={20} className="animate-spin" />
+                      ) : buildStatus.conclusion === 'success' ? (
+                        <CheckCircle size={20} />
+                      ) : buildStatus.conclusion === 'failure' ? (
+                        <AlertCircle size={20} />
+                      ) : (
+                        <Smartphone size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">{buildStatus.runName || 'Cloud Build Runner'}</span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            buildStatus.status === 'in_progress'
+                              ? 'bg-amber-500/30 text-amber-300'
+                              : buildStatus.conclusion === 'success'
+                              ? 'bg-emerald-500/30 text-emerald-300'
+                              : buildStatus.conclusion === 'failure'
+                              ? 'bg-red-500/30 text-red-300'
+                              : 'bg-neutral-700 text-neutral-300'
+                          }`}
+                        >
+                          {buildStatus.status === 'in_progress'
+                            ? 'Building APK (Gradle)'
+                            : buildStatus.conclusion || buildStatus.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-400 mt-0.5">{buildStatus.message}</p>
+                    </div>
+                  </div>
+
+                  {buildStatus.runUrl && (
+                    <a
+                      href={buildStatus.runUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-200 text-xs font-semibold flex items-center gap-1.5 self-start md:self-auto transition-colors"
+                    >
+                      <span>View GitHub Logs</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Middle Grid: Active Release Health & Direct Drag-and-Drop Uploader */}
+            <div className="grid lg:grid-cols-12 gap-6">
+              {/* Active Release Card (6 cols) */}
+              <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <h4 className="font-bold text-text-primary text-base flex items-center gap-2">
+                    <ShieldCheck size={18} className="text-emerald-600" />
+                    Active Distribution Status
+                  </h4>
+                  <button
+                    onClick={loadReleaseManifest}
+                    className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-text-secondary"
+                    title="Reload manifest"
+                  >
+                    <RefreshCw size={14} className={releaseLoading ? 'animate-spin text-primary' : ''} />
+                  </button>
+                </div>
+
+                {releaseManifest ? (
+                  <div className="space-y-3 text-xs">
+                    <div className="p-4 rounded-2xl bg-surface-base border border-neutral-100 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted font-medium">Published Version</span>
+                        <span className="text-sm font-black text-primary px-2 py-0.5 bg-primary/10 rounded-lg">
+                          v{releaseManifest.latestVersion}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted font-medium">Last Published Date</span>
+                        <span className="text-text-primary font-semibold">
+                          {formatDate(releaseManifest.updatedAt)}
+                        </span>
+                      </div>
+                      {releaseManifest.links.find((l) => l.platform === 'android')?.fileSize && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-muted font-medium">Android APK Size</span>
+                          <span className="text-text-primary font-bold">
+                            {releaseManifest.links.find((l) => l.platform === 'android')?.fileSize}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Android Link Direct Action */}
+                    <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-2">
+                      <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider">
+                        Live Android Download Endpoint
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={releaseManifest.links.find((l) => l.platform === 'android')?.href || ''}
+                          className="flex-1 bg-white border border-neutral-200 px-3 py-1.5 rounded-lg text-xs font-mono text-neutral-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const link = releaseManifest.links.find((l) => l.platform === 'android')?.href || '';
+                            navigator.clipboard.writeText(link);
+                            showToast('Download URL copied to clipboard!');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-text-muted text-xs">
+                    <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-primary" />
+                    Loading release status...
+                  </div>
+                )}
+              </div>
+
+              {/* Direct Drag & Drop Uploader (6 cols) */}
+              <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <h4 className="font-bold text-text-primary text-base flex items-center gap-2">
+                    <UploadCloud size={18} className="text-primary" />
+                    Direct APK Uploader
+                  </h4>
+                  <span className="text-[10px] text-neutral-400">Manual / Hotfix Publishing</span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <label className="block p-5 border-2 border-dashed border-neutral-200 hover:border-primary rounded-2xl bg-surface-base text-center cursor-pointer transition-colors">
+                    <input
+                      type="file"
+                      accept=".apk,application/vnd.android.package-archive"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setUploadApkFile(file);
+                      }}
+                    />
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
+                      <Download size={20} />
+                    </div>
+                    {uploadApkFile ? (
+                      <div>
+                        <p className="font-bold text-text-primary text-sm">{uploadApkFile.name}</p>
+                        <p className="text-[11px] text-text-muted mt-0.5">
+                          {(uploadApkFile.size / (1024 * 1024)).toFixed(1)} MB • Click to replace
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-semibold text-text-primary">Drag & drop your .apk file here</p>
+                        <p className="text-[11px] text-text-muted mt-0.5">or browse from your local computer</p>
+                      </div>
+                    )}
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-neutral-700 block mb-1">Version Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1.0.1"
+                        value={uploadVersionInput}
+                        onChange={(e) => setUploadVersionInput(e.target.value)}
+                        className="w-full p-2.5 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        disabled={!uploadApkFile || isUploadingApk}
+                        onClick={handleUploadApk}
+                        className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 transition-all"
+                      >
+                        {isUploadingApk ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud size={14} /> Upload & Publish APK
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Section: Multi-Platform URL & Status Configurator */}
+            <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-100">
+                <div>
+                  <h4 className="font-bold text-text-primary text-base flex items-center gap-2">
+                    <Layers size={18} className="text-primary" />
+                    Multi-Platform Release Channels
+                  </h4>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Configure download links, store URLs, and toggle availability for each client operating system.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSavingManifest}
+                  onClick={handleSavePlatformManifest}
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 self-start sm:self-auto transition-all disabled:opacity-50"
+                >
+                  {isSavingManifest ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={14} /> Save Platform Changes
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="divide-y divide-neutral-100">
+                {editableLinks.map((link, idx) => (
+                  <div key={link.platform} className="py-4 flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="w-40 flex items-center gap-2.5 flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-surface-base text-text-primary flex items-center justify-center font-bold text-xs uppercase border border-neutral-200">
+                        {link.platform.slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-text-primary capitalize">{link.platform}</p>
+                        <p className="text-[10px] text-text-muted">{link.label}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-3">
+                      <div className="md:col-span-7">
+                        <label className="text-[10px] text-neutral-500 font-semibold block mb-0.5">Download / Store URL</label>
+                        <input
+                          type="text"
+                          placeholder="https://..."
+                          value={link.href}
+                          onChange={(e) => {
+                            const next = [...editableLinks];
+                            next[idx] = { ...next[idx], href: e.target.value };
+                            setEditableLinks(next);
+                          }}
+                          className="w-full p-2 border border-neutral-200 rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="md:col-span-3">
+                        <label className="text-[10px] text-neutral-500 font-semibold block mb-0.5">Min Requirement</label>
+                        <input
+                          type="text"
+                          value={link.minRequirement || ''}
+                          onChange={(e) => {
+                            const next = [...editableLinks];
+                            next[idx] = { ...next[idx], minRequirement: e.target.value };
+                            setEditableLinks(next);
+                          }}
+                          className="w-full p-2 border border-neutral-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = [...editableLinks];
+                            next[idx] = { ...next[idx], available: !next[idx].available };
+                            setEditableLinks(next);
+                          }}
+                          className={`w-full py-2 rounded-lg text-xs font-bold transition-colors ${
+                            link.available
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                          }`}
+                        >
+                          {link.available ? 'Available' : 'Coming Soon'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: DISPATCH GITHUB ACTIONS CLOUD BUILD */}
+        {buildModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-neutral-100">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <h3 className="font-bold text-base text-neutral-900 flex items-center gap-2">
+                  <CloudLightning size={20} className="text-amber-500" />
+                  Dispatch GitHub Actions Cloud Build
+                </h3>
+                <button
+                  onClick={() => setBuildModalOpen(false)}
+                  className="text-neutral-400 hover:text-neutral-600 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                This will trigger the <strong className="text-neutral-900">build-android-release.yml</strong> runner on GitHub Actions to compile the Flutter Android APK and publish release assets.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Release Version Tag</label>
+                  <input
+                    type="text"
+                    value={buildVersionInput}
+                    onChange={(e) => setBuildVersionInput(e.target.value)}
+                    placeholder="e.g. 1.0.1"
+                    className="w-full p-3 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Build Target Type</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setBuildTypeInput('release')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        buildTypeInput === 'release'
+                          ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
+                          : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      Release APK (Optimized)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBuildTypeInput('debug')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        buildTypeInput === 'debug'
+                          ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
+                          : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      Debug APK (Fast)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Release Notes & Changelog</label>
+                  <textarea
+                    rows={3}
+                    value={buildNotesInput}
+                    onChange={(e) => setBuildNotesInput(e.target.value)}
+                    placeholder="Describe new features or bugfixes included in this build..."
+                    className="w-full p-3 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBuildModalOpen(false)}
+                  className="px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!buildVersionInput.trim() || isTriggeringBuild}
+                  onClick={handleTriggerCloudBuild}
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isTriggeringBuild ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Dispatching...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={14} /> Dispatch Cloud Build
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {/* MODAL: ISSUE OFFICIAL WARNING */}
         {warnModalOpen && warnTarget && (

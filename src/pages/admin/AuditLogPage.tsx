@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, FileText, Clock, Search, ShieldCheck } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, FileText, Clock, Search } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { adminGet } from '../../lib/api';
 import type { VerificationAuditLog, AuditAction } from '../../types';

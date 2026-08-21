@@ -275,6 +275,10 @@ export async function adminPost<T>(path: string, body: unknown): Promise<T> {
   return adminRequest<T>(path, { method: 'POST', body });
 }
 
+export async function adminPut<T>(path: string, body: unknown): Promise<T> {
+  return adminRequest<T>(path, { method: 'PUT', body });
+}
+
 export async function adminRequest<T>(
   path: string,
   options: { method: 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown },
@@ -305,4 +309,29 @@ export async function adminRequest<T>(
 
   return fallbackAdminRequest<T>(path, options);
 }
+
+export async function adminPostMultipart<T>(path: string, formData: FormData): Promise<T> {
+  if (!apiBaseUrl) throw new Error('Missing VITE_EXPRESS_API_BASE_URL');
+
+  const response = await fetch(`${apiBaseUrl.replace(/\/$/, '')}${path}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      ...adminHeaders(),
+    },
+    body: formData,
+  });
+
+  const json = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errorMsg =
+      json?.error?.message ||
+      json?.message ||
+      (typeof json?.error === 'string' ? json.error : null) ||
+      `HTTP ${response.status}: Request failed`;
+    throw new Error(errorMsg);
+  }
+  return (json?.data ?? json) as T;
+}
+
 
