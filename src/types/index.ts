@@ -178,6 +178,29 @@ export interface AdminAccountDetail {
   }>;
 }
 
+export interface AdminBlockCounterpart {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  signup_type: string | null;
+  account_status: string | null;
+}
+
+export interface AdminBlockEdge {
+  id: string;
+  user: AdminBlockCounterpart | null;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface AdminBlockRelationships {
+  blocked_by_count: number;
+  blocks_count: number;
+  blocked_by: AdminBlockEdge[];
+  blocks: AdminBlockEdge[];
+}
+
 // Form data types
 export interface PersonalInfoData {
   full_name: string;

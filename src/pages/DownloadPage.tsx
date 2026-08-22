@@ -132,7 +132,7 @@ const trustItems = [
   {
     icon: CheckCircle,
     title: 'Direct GPS Tracking',
-    description: 'Track artisan arrival, milestones, escrow payments, and service progress live.',
+    description: 'Track artisan arrival, milestones, secure payments, and service progress live.',
   },
 ];
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle, ShieldAlert, Clock, CheckCircle2, Search, Filter,
   Eye, UserX, AlertCircle,
@@ -17,6 +17,13 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Live-queue signal: no moderator user accounts exist (portal auth is a shared
+  // admin key), so new reports can't be push-notified. Instead we silently poll
+  // and surface an attention banner when new reports arrive since last seen.
+  const knownReportIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+  const [newReportAlert, setNewReportAlert] = useState<{ count: number; emergency: boolean } | null>(null);
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -32,6 +39,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
   const [actionStatus, setActionStatus] = useState<ReportStatus>('UNDER_REVIEW');
   const [actionPriority, setActionPriority] = useState<ReportPriority>('HIGH');
   const [actionTaken, setActionTaken] = useState<ModerationAction>('NONE');
+  const [actionSuspendDays, setActionSuspendDays] = useState<number>(7);
   const [moderationNotes, setModerationNotes] = useState('');
   const [resolutionReason, setResolutionReason] = useState('');
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
@@ -83,8 +91,8 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
     }
   };
 
-  const fetchReports = async () => {
-    setLoading(true);
+  const fetchReports = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -94,17 +102,55 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
       if (searchQuery.trim()) params.append('q', searchQuery.trim());
 
       const data = await adminGet<AdminReport[]>(`/admin/reports?${params.toString()}`);
-      setReports(data || []);
+      const list = data || [];
+
+      // Detect reports that have appeared since the last known baseline. Skip the
+      // very first load (nothing to compare against) and non-silent refreshes
+      // (filter/search changes intentionally reset the view).
+      if (silent && !isFirstLoadRef.current) {
+        const known = knownReportIdsRef.current;
+        const fresh = list.filter((r) => !known.has(r.id));
+        if (fresh.length > 0) {
+          const hasEmergency = fresh.some((r) => r.is_emergency);
+          setNewReportAlert((prev) => ({
+            count: (prev?.count ?? 0) + fresh.length,
+            emergency: (prev?.emergency ?? false) || hasEmergency,
+          }));
+        }
+      } else if (!silent) {
+        // A deliberate (filter/search) refresh re-baselines and clears stale alerts.
+        setNewReportAlert(null);
+      }
+
+      knownReportIdsRef.current = new Set(list.map((r) => r.id));
+      isFirstLoadRef.current = false;
+      setReports(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch safety reports');
+      if (!silent) setError(err instanceof Error ? err.message : 'Failed to fetch safety reports');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Keep a live reference to the latest fetchReports so the polling interval
+  // (registered once) always calls the freshest closure with current filters.
+  const fetchReportsRef = useRef(fetchReports);
+  fetchReportsRef.current = fetchReports;
 
   useEffect(() => {
     fetchReports();
   }, [statusFilter, priorityFilter, emergencyFilter]);
+
+  // Silent background poll so moderators see new/emergency reports without a
+  // manual reload. Pauses while the tab is hidden to avoid needless load.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchReportsRef.current(true);
+      }
+    }, 25000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +185,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
         action_taken: actionTaken,
         moderation_notes: moderationNotes,
         resolution_reason: resolutionReason,
+        ...(actionTaken === 'TEMPORARY_SUSPENSION' ? { suspend_duration_days: actionSuspendDays } : {}),
       });
 
       setReportDetail(updated);
@@ -171,7 +218,30 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
               Manage user reports, safety emergencies, repeat offenders, and policy enforcement audit logs.
             </p>
           </div>
+          <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            Live · auto-refreshing
+          </div>
         </div>
+
+        {/* New-report attention banner (silent poll surfaced new arrivals) */}
+        {newReportAlert && (
+          <button
+            onClick={() => setNewReportAlert(null)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm border transition-colors ${
+              newReportAlert.emergency
+                ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 animate-pulse'
+                : 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+            }`}
+          >
+            <AlertTriangle size={16} />
+            {newReportAlert.count} new {newReportAlert.count === 1 ? 'report' : 'reports'} in the queue
+            {newReportAlert.emergency ? ' — includes an EMERGENCY' : ''} · click to dismiss
+          </button>
+        )}
 
         {/* Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -657,6 +727,25 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                       </select>
                     </div>
                   </div>
+
+                  {actionTaken === 'TEMPORARY_SUSPENSION' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                        Suspension Duration (days)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={actionSuspendDays}
+                        onChange={(e) => setActionSuspendDays(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-full sm:w-40 border border-neutral-300 rounded-lg p-2 text-xs bg-white focus:ring-2 focus:ring-primary/20"
+                      />
+                      <p className="text-[11px] text-neutral-500 mt-1">
+                        Account auto-reactivates after this period. Defaults to 7 days.
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 mb-1">Resolution Summary / Note for Reporter</label>

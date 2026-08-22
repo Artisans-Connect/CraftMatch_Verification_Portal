@@ -306,7 +306,7 @@ export function PaymentGateway() {
           {isCompleted ? (
             <div className="space-y-4 text-center">
               <div className="bg-success-light text-success-dark p-4 rounded-xl text-sm font-medium border border-success/20">
-                ✓ {isSandbox ? 'Sandbox Simulation Successful!' : 'Payment completed successfully! Funds are held securely in escrow.'}
+                ✓ {isSandbox ? 'Sandbox Simulation Successful!' : 'Payment completed successfully!'}
               </div>
               <p className="text-text-secondary text-xs mt-4">
                 Redirecting you back to the CraftMatch {platform === 'web' ? 'website' : 'mobile app'} in <span className={`font-bold ${isSandbox ? 'text-gold' : 'text-primary'}`}>{countdown}s</span>...

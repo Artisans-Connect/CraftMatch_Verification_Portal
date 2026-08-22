@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Ban,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Eye,
   Search,
   ShieldOff,
@@ -11,7 +14,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { adminGet, adminPatch } from '../../lib/api';
-import type { AdminAccount, AdminAccountDetail, AdminAccountWorker } from '../../types';
+import type { AdminAccount, AdminAccountDetail, AdminAccountWorker, AdminBlockEdge, AdminBlockRelationships } from '../../types';
 
 interface AccountsPageProps {
   onNavigate: (page: string, data?: unknown) => void;
@@ -39,6 +42,7 @@ function displayRole(account: AdminAccount) {
 export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const [accounts, setAccounts] = useState<AdminAccount[]>([]);
   const [selected, setSelected] = useState<AdminAccountDetail | null>(null);
+  const [blocks, setBlocks] = useState<AdminBlockRelationships | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [suspensionReason, setSuspensionReason] = useState('');
@@ -95,6 +99,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
 
   const openAccount = (accountId: string) => {
     setDetailLoading(true);
+    setBlocks(null);
     adminGet<AdminAccountDetail>(`/admin/accounts/${accountId}`)
       .then((data) => {
         setSelected(data);
@@ -103,6 +108,11 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load account.'))
       .finally(() => setDetailLoading(false));
+    // Block activity is a secondary, moderator-only signal — fetch it in
+    // parallel and fail safe so a block-read error never blocks the drawer.
+    adminGet<AdminBlockRelationships>(`/admin/accounts/${accountId}/blocks`)
+      .then(setBlocks)
+      .catch(() => setBlocks(null));
   };
 
   const suspendAccount = async () => {
@@ -321,6 +331,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               ) : (
                 <AccountDrawer
                   detail={selected}
+                  blocks={blocks}
                   reason={suspensionReason}
                   saving={saving}
                   tierOverride={tierOverride}
@@ -328,7 +339,10 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                   onTierChange={setTierOverride}
                   onUpdateTier={handleUpdateTier}
                   onReasonChange={setSuspensionReason}
-                  onClose={() => setSelected(null)}
+                  onClose={() => {
+                    setSelected(null);
+                    setBlocks(null);
+                  }}
                   onSuspend={suspendAccount}
                   onReactivate={reactivateAccount}
                 />
@@ -343,6 +357,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
 
 function AccountDrawer({
   detail,
+  blocks,
   reason,
   saving,
   tierOverride,
@@ -355,6 +370,7 @@ function AccountDrawer({
   onReactivate,
 }: {
   detail: AdminAccountDetail;
+  blocks: AdminBlockRelationships | null;
   reason: string;
   saving: boolean;
   tierOverride: 'identity' | 'professional' | 'premium';
@@ -368,12 +384,17 @@ function AccountDrawer({
 }) {
   const worker = workerFrom(detail.profile);
   const isSuspended = detail.profile.account_status === 'suspended';
+  const [showBlockDetail, setShowBlockDetail] = useState(false);
 
   useEffect(() => {
     const currentLevel = (detail.verifications?.[0]?.verification_level || 'identity') as 'identity' | 'professional' | 'premium';
     if (['identity', 'professional', 'premium'].includes(currentLevel)) {
       onTierChange(currentLevel);
     }
+  }, [detail.profile.id]);
+
+  useEffect(() => {
+    setShowBlockDetail(false);
   }, [detail.profile.id]);
 
   return (
@@ -393,6 +414,51 @@ function AccountDrawer({
         <InfoTile label="Role" value={worker ? 'Worker' : 'Client'} icon={Users} tone="text-primary" />
         <InfoTile label="Jobs" value={String(worker?.total_jobs ?? detail.recent_jobs.length)} icon={CheckCircle} tone="text-info-dark" />
       </div>
+
+      {blocks && (blocks.blocked_by_count > 0 || blocks.blocks_count > 0) && (
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-text-primary flex items-center gap-2">
+              <Ban size={16} className={blocks.blocked_by_count > 0 ? 'text-error' : 'text-text-muted'} />
+              Block activity
+            </p>
+            {(blocks.blocked_by.length > 0 || blocks.blocks.length > 0) && (
+              <button
+                className="btn-ghost py-1 px-2.5 h-auto text-xs"
+                onClick={() => setShowBlockDetail((value) => !value)}
+              >
+                {showBlockDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {showBlockDetail ? 'Hide' : 'Details'}
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`rounded-xl p-3 border ${blocks.blocked_by_count > 0 ? 'border-error/30 bg-error-light/30' : 'border-neutral-100'}`}>
+              <p className={`text-2xl font-bold ${blocks.blocked_by_count > 0 ? 'text-error' : 'text-text-primary'}`}>{blocks.blocked_by_count}</p>
+              <p className="text-xs text-text-muted">Users who blocked this account</p>
+            </div>
+            <div className="rounded-xl p-3 border border-neutral-100">
+              <p className="text-2xl font-bold text-text-primary">{blocks.blocks_count}</p>
+              <p className="text-xs text-text-muted">Users this account blocked</p>
+            </div>
+          </div>
+
+          {blocks.blocked_by_count >= 3 && (
+            <p className="text-xs text-error flex items-center gap-1.5">
+              <AlertTriangle size={13} />
+              Multiple users have blocked this account — review for a possible abuse pattern.
+            </p>
+          )}
+
+          {showBlockDetail && (
+            <div className="space-y-4 pt-1">
+              <BlockList title="Blocked by" edges={blocks.blocked_by} emptyLabel="No one has blocked this account." />
+              <BlockList title="Has blocked" edges={blocks.blocks} emptyLabel="This account hasn't blocked anyone." />
+            </div>
+          )}
+        </div>
+      )}
 
       {isSuspended ? (
         <div className="card p-4 border-error/20 bg-error-light/30">
@@ -492,6 +558,33 @@ function AccountDrawer({
           {detail.recent_jobs.length === 0 && <p className="text-sm text-text-muted">No recent jobs.</p>}
         </div>
       </section>
+    </div>
+  );
+}
+
+function BlockList({ title, edges, emptyLabel }: { title: string; edges: AdminBlockEdge[]; emptyLabel: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+        {title} ({edges.length})
+      </p>
+      {edges.length === 0 ? (
+        <p className="text-xs text-text-muted">{emptyLabel}</p>
+      ) : (
+        <div className="space-y-2">
+          {edges.map((edge) => (
+            <div key={edge.id} className="flex items-start justify-between gap-3 text-sm border-b border-neutral-50 pb-2">
+              <div className="min-w-0">
+                <p className="font-medium text-text-primary truncate">{edge.user?.full_name || 'Unknown user'}</p>
+                {edge.reason && <p className="text-xs text-text-muted break-words">“{edge.reason}”</p>}
+              </div>
+              <span className="text-xs text-text-muted whitespace-nowrap">
+                {new Date(edge.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

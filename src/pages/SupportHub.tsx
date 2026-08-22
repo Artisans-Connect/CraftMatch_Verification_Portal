@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { supportConfig } from '../lib/supportConfig';
+import { apiPost } from '../lib/api';
 
 interface SupportHubProps {
   activeTab: string;
@@ -37,6 +38,8 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
   const [abuseForm, setAbuseForm] = useState({ name: '', email: '', target: '', reason: 'scam', details: '' });
   const [abuseSubmitted, setAbuseSubmitted] = useState(false);
   const [abuseTicket, setAbuseTicket] = useState('');
+  const [abuseSubmitting, setAbuseSubmitting] = useState(false);
+  const [abuseError, setAbuseError] = useState<string | null>(null);
   const [fileAttached, setFileAttached] = useState<string | null>(null);
 
   // FAQ Search States
@@ -57,12 +60,29 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
     setContactSubmitted(true);
   };
 
-  const handleAbuseSubmit = (e: React.FormEvent) => {
+  const handleAbuseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!abuseForm.name || !abuseForm.email || !abuseForm.target || !abuseForm.details) return;
-    const ticketId = 'REP-' + Math.floor(100000 + Math.random() * 900000);
-    setAbuseTicket(ticketId);
-    setAbuseSubmitted(true);
+    if (abuseSubmitting) return;
+    setAbuseSubmitting(true);
+    setAbuseError(null);
+    try {
+      const result = await apiPost<{ ticket_number: string; status: string }>('/public/reports', {
+        reporter_name: abuseForm.name,
+        reporter_email: abuseForm.email,
+        reported_target: abuseForm.target,
+        reason: abuseForm.reason,
+        details: abuseForm.details,
+      });
+      setAbuseTicket(result?.ticket_number || '');
+      setAbuseSubmitted(true);
+    } catch (err) {
+      setAbuseError(
+        err instanceof Error ? err.message : 'Could not submit your report. Please try again.'
+      );
+    } finally {
+      setAbuseSubmitting(false);
+    }
   };
 
   // FAQ List Data
@@ -89,12 +109,12 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
     },
     {
       q: 'What should I do if an artisan does poor work or disappears?',
-      a: 'You should immediately document the work (photos) and contact our mediation support team. Do not release payments if they are still held in escrow. Read our Dispute Policy tab for detailed steps on resolving quality or execution issues.',
+      a: 'You should immediately document the work (photos) and contact our mediation support team. Do not release payment until you are satisfied the job is complete. Read our Dispute Policy tab for detailed steps on resolving quality or execution issues.',
       cat: 'client'
     },
     {
       q: `Are artisans on ${supportConfig.company_name} employees of the company?`,
-      a: `No. Verified artisans are independent contractors. ${supportConfig.company_name} acts as an escrow-secure marketplace and verification portal, but does not employ, schedule, or supervise the artisans.`,
+      a: `No. Verified artisans are independent contractors. ${supportConfig.company_name} acts as a verification and job-coordination marketplace, but does not employ, schedule, or supervise the artisans.`,
       cat: 'client'
     },
     {
@@ -205,7 +225,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                 <div className="border-l-4 border-primary bg-primary-50/30 p-4 rounded-r-xl my-6">
                   <h4 className="font-bold text-text-primary text-sm mb-1">🎓 Educational Project Notice</h4>
                   <p className="text-xs">
-                    {supportConfig.company_name} is designed and developed as a **Final Year Project** by student developers. It serves as an advanced prototype and research artifact aimed at testing labor formalization theories and secure digital transaction escrow models in West Africa.
+                    {supportConfig.company_name} is designed and developed as a **Final Year Project** by student developers. It serves as an advanced prototype and research artifact aimed at testing labor formalization theories and secure digital transaction models in West Africa.
                   </p>
                 </div>
 
@@ -447,7 +467,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                     <ul className="list-disc pl-4 space-y-1.5 text-xs">
                       <li>**Always check for the Verification Badge**: Only hire workers marked as verified to ensure their Ghana Cards have been validated.</li>
                       <li>**Meet in Safe Environments**: If a home visit is required, make sure someone else is present at home.</li>
-                      <li>**Secure Payments**: Never pay full costs upfront. Pay via escrow or deposit, releasing final payment only upon job completion.</li>
+                      <li>**Secure Payments**: Never pay full costs upfront. Pay a deposit and release the final payment only upon job completion.</li>
                       <li>**Keep Chat Logs**: Discuss pricing and scopes inside the in-app chat for valid dispute logs.</li>
                     </ul>
                   </div>
@@ -500,11 +520,11 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                       {abuseTicket}
                     </div>
                     <p className="text-[10px] text-text-muted">
-                      Our safety and compliance team will review the audit trail, chat history, and verification files. If necessary, the reported account will be suspended.
+                      Our safety team will review your report and investigate the reported account. If the claim is substantiated, the account will be warned or suspended. Please keep your Incident ID for any follow-up.
                     </p>
                     <button
                       type="button"
-                      onClick={() => { setAbuseSubmitted(false); setFileAttached(null); setAbuseForm({ name: '', email: '', target: '', reason: 'scam', details: '' }); }}
+                      onClick={() => { setAbuseSubmitted(false); setAbuseError(null); setFileAttached(null); setAbuseForm({ name: '', email: '', target: '', reason: 'scam', details: '' }); }}
                       className="btn-secondary text-xs px-4 py-2 mt-2 w-full justify-center"
                     >
                       File another report
@@ -560,7 +580,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                             <option value="scam">Scam / Financial Fraud</option>
                             <option value="harassment">Harassment / Abusive behavior</option>
                             <option value="no_show">Artisan No-Show after payment</option>
-                            <option value="poor_workmanship">Severe Damage or Theft</option>
+                            <option value="property_damage">Severe Damage or Theft</option>
                             <option value="other">Other Violation</option>
                           </select>
                           <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
@@ -592,9 +612,20 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                       </div>
                     </div>
 
-                    <button type="submit" className="btn-primary text-xs px-6 py-2.5 bg-error hover:bg-error-dark justify-center">
+                    {abuseError && (
+                      <div className="flex items-start gap-2 text-xs text-error bg-error-light/20 border border-error/20 rounded-xl p-3">
+                        <XCircle size={14} className="flex-shrink-0 mt-0.5" />
+                        <span>{abuseError}</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={abuseSubmitting}
+                      className="btn-primary text-xs px-6 py-2.5 bg-error hover:bg-error-dark justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
                       <AlertTriangle size={14} />
-                      File Incident Report
+                      {abuseSubmitting ? 'Submitting…' : 'File Incident Report'}
                     </button>
                   </form>
                 )}
@@ -789,12 +820,12 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
                     Before lodging a formal dispute, both parties are required to discuss and attempt to resolve the issue directly using the in-app chat. Often, issues stem from minor miscommunications regarding materials or timelines.
                   </p>
 
-                  <h3 className="font-bold text-text-primary text-sm">2. Escrow Mediation</h3>
+                  <h3 className="font-bold text-text-primary text-sm">2. Payment Mediation</h3>
                   <p>
                     If direct negotiations fail, either party can raise a dispute by emailing <strong>{supportConfig.support_email}</strong> with the booking ID. Once a dispute is opened:
                   </p>
                   <ul className="list-disc pl-4 space-y-1">
-                    <li>The escrow payment is frozen immediately.</li>
+                    <li>Any pending payment is frozen immediately.</li>
                     <li>Both parties must provide photographic evidence of the work.</li>
                     <li>Our team reviews chat logs, expectations, and evidence.</li>
                   </ul>
@@ -832,7 +863,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                   <h3 className="font-bold text-text-primary text-sm">1. Client Cancellations</h3>
                   <ul className="list-disc pl-4 space-y-1.5">
-                    <li>**More than 24 hours before job start**: Full refund of the escrow amount. No cancellation fees.</li>
+                    <li>**More than 24 hours before job start**: Full refund of any amount paid. No cancellation fees.</li>
                     <li>**Within 24 hours of job start**: A fee of 15% of the total budget is deducted to compensate the artisan for loss of other work opportunities, and the rest is refunded to the client.</li>
                     <li>**After artisan has arrived at location**: A fee of 30% or the transport allowance (whichever is higher) is deducted and paid to the artisan.</li>
                   </ul>
