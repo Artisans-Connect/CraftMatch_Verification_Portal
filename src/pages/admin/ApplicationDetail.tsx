@@ -154,6 +154,7 @@ export function ApplicationDetail({ application: initialApplication, application
           ...updateData,
           status: 'more_info_requested',
           more_info_message: modalData.message,
+          required_docs: modalData.docs,
         };
       }
 

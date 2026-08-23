@@ -125,8 +125,23 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
     if (step === 1) {
       if (!form.personal.full_name.trim()) errs.full_name = 'Full name is required';
       if (!form.personal.phone_number.trim()) errs.phone_number = 'Phone number is required';
-      if (!form.personal.email.trim()) errs.email = 'Email is required';
-      if (!form.personal.date_of_birth) errs.date_of_birth = 'Date of birth is required';
+      if (!form.personal.email.trim()) {
+        errs.email = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.personal.email.trim())) {
+        errs.email = 'Please enter a valid email address';
+      }
+      if (!form.personal.date_of_birth) {
+        errs.date_of_birth = 'Date of birth is required';
+      } else {
+        const dob = new Date(form.personal.date_of_birth);
+        const ageMs = Date.now() - dob.getTime();
+        const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
+        if (isNaN(dob.getTime()) || dob > new Date()) {
+          errs.date_of_birth = 'Date of birth cannot be in the future';
+        } else if (ageYears < 18) {
+          errs.date_of_birth = 'You must be at least 18 years old to apply';
+        }
+      }
       if (!form.personal.gender) errs.gender = 'Gender is required';
     }
     if (step === 2) {

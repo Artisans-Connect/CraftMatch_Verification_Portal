@@ -48,6 +48,28 @@ const allNavItems = navSections.flatMap((s) => s.items);
 export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState<{ email?: string; name?: string }>({
+    name: 'Admin User',
+    email: 'admin@artisans.gh',
+  });
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setAdminUser({
+          email: data.user.email || 'admin@artisans.gh',
+          name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Admin User',
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {}
+    if (onNavigate) onNavigate('home');
+  };
 
   const handleNavigate = (item: typeof allNavItems[0]) => {
     window.location.hash = item.route;
@@ -122,7 +144,7 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
         {/* Footer */}
         <div className="p-3 border-t border-neutral-100 space-y-2">
           <button
-            onClick={() => onNavigate?.('home')}
+            onClick={handleSignOut}
             className={`w-full sidebar-item ${(collapsed && !isMobileOpen) ? 'justify-center px-2' : ''} text-error hover:bg-error-light hover:text-error`}
             title={(collapsed && !isMobileOpen) ? 'Sign Out' : undefined}
           >
@@ -160,11 +182,11 @@ export function AdminLayout({ children, currentPage = 'dashboard', onNavigate }:
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-text-primary">Admin User</p>
-              <p className="text-xs text-text-muted">admin@artisans.gh</p>
+              <p className="text-sm font-semibold text-text-primary">{adminUser.name}</p>
+              <p className="text-xs text-text-muted">{adminUser.email}</p>
             </div>
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-white text-sm font-bold">A</span>
+              <span className="text-white text-sm font-bold">{(adminUser.name || 'A').charAt(0).toUpperCase()}</span>
             </div>
           </div>
         </header>

@@ -2,7 +2,7 @@
 export const supportConfig = {
   company_name: "CraftMatch",
   domain_name: "craftmatch.com",
-  support_email: "support@craftmatch.com",
+  support_email: "craftmatch.assist@gmail.com",
   escalation_email: "craftmatch.assist@gmail.com",
   effective_date: "2026-06-06",
   last_updated: "2026-06-06",

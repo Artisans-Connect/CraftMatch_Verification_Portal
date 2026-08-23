@@ -94,8 +94,18 @@ export function UpdatePasswordPage() {
     const isApp = source === 'app';
     let signInUrl = 'craftmatch://login';
     if (redirectTo) {
-      const base = redirectTo.endsWith('/') ? redirectTo.slice(0, -1) : redirectTo;
-      signInUrl = `${base}/#/auth/sign-in`;
+      try {
+        const parsedUrl = new URL(redirectTo);
+        const allowedHosts = ['localhost', '127.0.0.1', window.location.hostname];
+        if (allowedHosts.some(h => parsedUrl.hostname.endsWith(h)) || parsedUrl.protocol === 'craftmatch:') {
+          const base = redirectTo.endsWith('/') ? redirectTo.slice(0, -1) : redirectTo;
+          signInUrl = `${base}/#/auth/sign-in`;
+        }
+      } catch (_) {
+        if (redirectTo.startsWith('/')) {
+          signInUrl = `${window.location.origin}${redirectTo}/#/auth/sign-in`;
+        }
+      }
     }
 
     return (

@@ -33,7 +33,8 @@ export function ApplicationsTable({ onNavigate, currentPage = 'applications', fi
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filterStatus) params.set('status', filterStatus);
+    const effectiveStatus = statusFilter !== 'all' ? statusFilter : (filterStatus || '');
+    if (effectiveStatus) params.set('status', effectiveStatus);
     adminGet<WorkerVerification[]>(
       `/verification/admin/applications${params.toString() ? `?${params.toString()}` : ''}`,
     )
@@ -46,7 +47,7 @@ export function ApplicationsTable({ onNavigate, currentPage = 'applications', fi
         setLoadError(error instanceof Error ? error.message : 'Could not load applications.');
       })
       .finally(() => setLoading(false));
-  }, [filterStatus]);
+  }, [filterStatus, statusFilter]);
 
   const filtered = applications.filter(app => {
     const matchSearch = !search ||

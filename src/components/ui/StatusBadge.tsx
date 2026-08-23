@@ -16,7 +16,11 @@ const statusConfig: Record<VerificationStatus, { label: string; className: strin
 };
 
 export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || {
+    label: (status || 'Unknown').replace(/_/g, ' '),
+    className: 'bg-neutral-100 text-neutral-700 border border-neutral-200',
+    icon: Clock,
+  };
   const Icon = config.icon;
   return (
     <span className={`${config.className} ${size === 'sm' ? 'text-xs px-2 py-0.5' : ''}`}>

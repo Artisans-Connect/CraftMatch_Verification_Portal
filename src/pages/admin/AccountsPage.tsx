@@ -73,13 +73,22 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     }
   };
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const query = useMemo(() => {
     const params = new URLSearchParams();
-    if (search.trim()) params.set('q', search.trim());
+    if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
     if (filter === 'active' || filter === 'suspended') params.set('status', filter);
     if (['client', 'worker', 'verified_worker'].includes(filter)) params.set('role', filter);
     return params.toString();
-  }, [search, filter]);
+  }, [debouncedSearch, filter]);
 
   const loadAccounts = () => {
     setLoading(true);
@@ -98,6 +107,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   useEffect(loadAccounts, [query]);
 
   const openAccount = (accountId: string) => {
+    setMessage('');
     setDetailLoading(true);
     setBlocks(null);
     adminGet<AdminAccountDetail>(`/admin/accounts/${accountId}`)
@@ -530,7 +540,11 @@ function AccountDrawer({
               {worker.is_verified && (
                 <button
                   disabled={updatingTier}
-                  onClick={() => onUpdateTier(detail.profile.id, 'identity', false)}
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to revoke verification for this artisan account?")) {
+                      onUpdateTier(detail.profile.id, 'identity', false);
+                    }
+                  }}
                   className="px-3 py-2 bg-neutral-200 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
                   Revoke Verification

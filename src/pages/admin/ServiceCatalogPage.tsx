@@ -174,15 +174,16 @@ export function ServiceCatalogPage({ onNavigate }: ServiceCatalogPageProps) {
   };
 
   const toggleCategoryActive = (category: AdminCategory) => {
-    setCategoryForm(categoryToForm({ ...category, is_active: !category.is_active }));
-    setTimeout(() => {
-      adminPatch<AdminCategory>(`/admin/categories/${category.id}`, { is_active: !category.is_active })
-        .then(() => {
-          setMessage(category.is_active ? 'Category deactivated.' : 'Category activated.');
-          loadCategories();
-        })
-        .catch((err) => setError(err instanceof Error ? err.message : 'Could not update category.'));
-    }, 0);
+    const nextState = !category.is_active;
+    if (!nextState && !window.confirm(`Are you sure you want to deactivate the "${category.name}" service category? This will hide all associated subservices.`)) {
+      return;
+    }
+    adminPatch<AdminCategory>(`/admin/categories/${category.id}`, { is_active: nextState })
+      .then(() => {
+        setMessage(category.is_active ? 'Category deactivated.' : 'Category activated.');
+        loadCategories();
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Could not update category.'));
   };
 
   const toggleSubcategoryActive = (subcategory: AdminSubcategory) => {

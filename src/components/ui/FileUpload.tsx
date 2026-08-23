@@ -22,14 +22,17 @@ export function FileUpload({
   required = false,
   hint,
 }: FileUploadProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const validateFile = useCallback((file: File): string | null => {
     const maxBytes = maxSizeMB * 1024 * 1024;
-    if (file.size > maxBytes) return `File too large. Max ${maxSizeMB}MB.`;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) return 'Invalid file type. Use PNG, JPG, or PDF.';
+    if (file.size > maxBytes) return `File "${file.name}" is too large. Max ${maxSizeMB}MB.`;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/heif', 'image/webp', 'application/pdf'];
+    if (file.type && !allowedTypes.includes(file.type.toLowerCase())) {
+      return `Invalid file type for "${file.name}". Use PNG, JPG, HEIC, WebP, or PDF.`;
+    }
     return null;
   }, [maxSizeMB]);
 
@@ -37,14 +40,28 @@ export function FileUpload({
     if (!newFiles) return;
     setError(null);
     const fileArray = Array.from(newFiles);
+    const valid: File[] = [];
+    const errors: string[] = [];
+
     for (const file of fileArray) {
       const err = validateFile(file);
-      if (err) { setError(err); return; }
+      if (err) {
+        errors.push(err);
+      } else {
+        valid.push(file);
+      }
     }
-    if (multiple) {
-      onFilesChange([...files, ...fileArray]);
-    } else {
-      onFilesChange(fileArray.slice(0, 1));
+
+    if (errors.length > 0) {
+      setError(errors.join(' '));
+    }
+
+    if (valid.length > 0) {
+      if (multiple) {
+        onFilesChange([...files, ...valid]);
+      } else {
+        onFilesChange(valid.slice(0, 1));
+      }
     }
   }, [files, multiple, onFilesChange, validateFile]);
 
@@ -55,8 +72,7 @@ export function FileUpload({
   }, [handleFiles]);
 
   const removeFile = (index: number) => {
-    const updated = files.filter((_, i) => i !== index);
-    onFilesChange(updated);
+    onFilesChange(files.filter((_, i) => i !== index));
   };
 
   const getFileIcon = (file: File) => {
@@ -72,15 +88,16 @@ export function FileUpload({
 
   return (
     <div className="space-y-2">
-      <label className="label">
-        {label}
-        {required && <span className="text-error ml-1">*</span>}
+      <label className="label text-sm font-semibold text-text-primary flex items-center justify-between">
+        <span>{label} {required && <span className="text-error">*</span>}</span>
       </label>
 
       {hint && <p className="text-xs text-text-muted -mt-1 mb-2">{hint}</p>}
 
       {(files.length === 0 || multiple) && (
         <div
+          role="button"
+          tabIndex={0}
           className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer
             ${isDragging
               ? 'border-primary bg-primary-50'
@@ -90,10 +107,16 @@ export function FileUpload({
           onDragLeave={() => setIsDragging(false)}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          onClick={() => document.getElementById(`file-${label.replace(/\s/g, '-')}`)?.click()}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
         >
           <input
-            id={`file-${label.replace(/\s/g, '-')}`}
+            ref={inputRef}
             type="file"
             accept={accept}
             multiple={multiple}
@@ -104,7 +127,7 @@ export function FileUpload({
           <p className="text-sm font-medium text-text-secondary">
             Drop files here or <span className="text-primary">click to browse</span>
           </p>
-          <p className="text-xs text-text-muted mt-1">PNG, JPG, PDF up to {maxSizeMB}MB</p>
+          <p className="text-xs text-text-muted mt-1">PNG, JPG, HEIC, WebP, PDF up to {maxSizeMB}MB</p>
         </div>
       )}
 

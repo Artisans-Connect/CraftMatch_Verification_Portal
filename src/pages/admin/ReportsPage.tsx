@@ -177,6 +177,9 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
 
   const handleApplyModeration = async () => {
     if (!selectedReportId) return;
+    if (actionTaken === 'PERMANENT_BAN' && !window.confirm('WARNING: PERMANENT BAN is a destructive action. Are you sure you want to permanently ban this account?')) {
+      return;
+    }
     setIsSubmittingAction(true);
     try {
       const updated = await adminPatch<AdminReport>(`/admin/reports/${selectedReportId}`, {
@@ -433,7 +436,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => handleInspectReport(report.id)}
-                          className="px-3 py-1.5 bg-primary text-white font-medium text-xs rounded-lg hover:bg-primary-hover transition-colors inline-flex items-center gap-1"
+                          className="px-3 py-1.5 bg-primary text-white font-medium text-xs rounded-lg hover:bg-primary-dark transition-colors inline-flex items-center gap-1"
                         >
                           <Eye size={14} />
                           Inspect
@@ -773,7 +776,7 @@ export function ReportsPage({ onNavigate }: ReportsPageProps) {
                     <button
                       onClick={handleApplyModeration}
                       disabled={isSubmittingAction}
-                      className="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
+                      className="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
                     >
                       {isSubmittingAction ? 'Applying Action...' : 'Apply & Permanently Audit Log'}
                     </button>

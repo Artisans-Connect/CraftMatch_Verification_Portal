@@ -8,8 +8,8 @@ interface QrCodeSvgProps {
 }
 
 /**
- * Lightweight QR Code Generator (Reed-Solomon Byte Mode / Numeric Mode)
- * Renders pure SVG for crisp, offline-ready mobile camera scanning.
+ * QR Code Display Component
+ * Renders an SVG QR code image for mobile camera scanning via API.
  */
 export const QrCodeSvg: React.FC<QrCodeSvgProps> = ({
   value,
