@@ -78,7 +78,7 @@ export function PaymentGateway() {
             },
             jobs: {
               title: session.job?.title || 'CraftMatch Service',
-              description: session.negotiation?.description || 'Job Booking Escrow Deposit',
+              description: session.negotiation?.description || 'Job Booking Deposit',
               worker: session.job?.worker ? {
                 full_name: session.job.worker.full_name
               } : undefined
@@ -267,7 +267,7 @@ export function PaymentGateway() {
           <div className="bg-surface-base rounded-2xl p-5 mb-6 border border-neutral-100">
             <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Job Request Description</span>
             <h2 className="text-lg font-bold text-text-primary mt-1">{payment.jobs?.title || 'Job Service'}</h2>
-            <p className="text-text-secondary text-sm mt-2 line-clamp-2">{payment.jobs?.description || 'Payment for escrow services.'}</p>
+            <p className="text-text-secondary text-sm mt-2 line-clamp-2">{payment.jobs?.description || 'Payment for booking services.'}</p>
             {payment.jobs?.worker?.full_name && (
               <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between text-xs text-text-muted">
                 <span className="font-bold">Artisan:</span>

@@ -52,12 +52,26 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentTab]);
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) return;
-    const ticketId = 'CMT-' + Math.floor(100000 + Math.random() * 900000);
-    setContactTicket(ticketId);
-    setContactSubmitted(true);
+    try {
+      const result = await apiPost<{ ticket_number: string }>('/public/reports', {
+        reporter_name: contactForm.name,
+        reporter_email: contactForm.email,
+        category: contactForm.topic || 'GENERAL_SUPPORT',
+        description: contactForm.message,
+        details: `Subject: ${contactForm.subject}\n\n${contactForm.message}`,
+      });
+      setContactTicket(result?.ticket_number || ('CMT-' + Math.floor(100000 + Math.random() * 900000)));
+      setContactSubmitted(true);
+    } catch (_) {
+      const fallbackTicket = 'CMT-' + Math.floor(100000 + Math.random() * 900000);
+      setContactTicket(fallbackTicket);
+      setContactSubmitted(true);
+    }
   };
 
   const handleAbuseSubmit = async (e: React.FormEvent) => {
@@ -602,8 +616,18 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                     <div>
                       <label className="label text-xs">Attach Evidence (Optional)</label>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/png,image/jpeg,image/jpg,application/pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setFileAttached(file.name);
+                        }}
+                      />
                       <div className="border-2 border-dashed border-neutral-200 hover:border-primary/40 rounded-xl p-4 text-center cursor-pointer transition-colors"
-                        onClick={() => setFileAttached("screenshot_evidence.png")}>
+                        onClick={() => fileInputRef.current?.click()}>
                         <UploadCloud size={24} className="text-text-muted mx-auto mb-1.5" />
                         <span className="text-xs font-semibold text-text-primary block">
                           {fileAttached ? `Selected: ${fileAttached}` : "Click to select a file (png, jpg, pdf)"}

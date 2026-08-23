@@ -29,9 +29,26 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
   const [realtimeConnected, setRealtimeConnected] = useState(false);
 
   useEffect(() => {
-    if (!application) return;
-    setRealtimeConnected(false);
-  }, [application]);
+    if (!application) {
+      setRealtimeConnected(false);
+      return;
+    }
+    setRealtimeConnected(true);
+    const interval = setInterval(async () => {
+      if (document.visibilityState === 'visible') {
+        const appNum = searchAppNum || application.application_number;
+        const phone = searchPhone || application.phone_number;
+        try {
+          const fresh = await fetchApplication(appNum, phone);
+          if (fresh) {
+            setApplication(fresh);
+            setLastChecked(new Date());
+          }
+        } catch (_) {}
+      }
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [application?.id]);
 
   const fetchApplication = async (appNum: string, phone: string) => {
     const params = new URLSearchParams();
@@ -248,7 +265,7 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
                     <div className={`flex items-center gap-1 text-xs font-medium transition-all
                       ${realtimeConnected ? 'text-success-dark' : 'text-text-muted'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${realtimeConnected ? 'bg-success animate-pulse' : 'bg-neutral-300'}`} />
-                      {realtimeConnected ? 'Live' : ''}
+                      {realtimeConnected ? 'Auto-refreshing' : ''}
                     </div>
                     <button
                       onClick={handleRefresh}

@@ -439,6 +439,10 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   };
 
   const handleSavePlatformManifest = async () => {
+    if (!editableLinks || editableLinks.length === 0) {
+      setError('Cannot save empty release links manifest.');
+      return;
+    }
     setIsSavingManifest(true);
     setError(null);
     try {
@@ -466,7 +470,13 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
     if (!isPollingBuild || activeTab !== 'releases') return;
     const interval = setInterval(async () => {
       const status = await checkBuildStatus();
-      if (status?.status === 'completed' || status?.conclusion === 'success' || status?.conclusion === 'failure') {
+      if (
+        status?.status === 'completed' ||
+        status?.conclusion === 'success' ||
+        status?.conclusion === 'failure' ||
+        status?.conclusion === 'cancelled' ||
+        status?.conclusion === 'timed_out'
+      ) {
         setIsPollingBuild(false);
         loadReleaseManifest();
       }
@@ -1312,8 +1322,9 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
         {/* TAB CONTENT: PLATFORM CONTROLS */}
         {activeTab === 'general' && (
           <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm space-y-6">
-            <h3 className="text-base font-bold text-text-primary border-b border-neutral-100 pb-3">
-              Platform & Safety Policy Controls
+            <h3 className="text-base font-bold text-text-primary border-b border-neutral-100 pb-3 flex items-center justify-between">
+              <span>Current Platform Policies</span>
+              <span className="text-xs font-normal text-text-muted bg-neutral-100 px-2 py-0.5 rounded">Read-Only</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 rounded-xl border border-neutral-100 bg-neutral-50/50 space-y-2">

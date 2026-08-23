@@ -153,10 +153,6 @@ export function ApplyPage({ onNavigate, handoffContext, handoffCode }: ApplyPage
       setErrors({ terms: 'You must confirm the information is accurate.' });
       return;
     }
-    if (!handoffCode) {
-      setErrors({ submit: 'Open verification from your worker profile before submitting.' });
-      return;
-    }
     setSubmitting(true);
     setUploadProgress(isMoreInfoResubmission ? 'Updating application...' : 'Creating application...');
     try {

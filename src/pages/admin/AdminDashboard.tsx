@@ -151,7 +151,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
                 <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
                   <DollarSign size={14} className="text-emerald-400" />
-                  Locked Escrow
+                  Held Deposits
                 </div>
                 <p className="text-2xl font-black text-emerald-400 font-mono">
                   GH₵ {(opStats.escrow.total_locked || 0).toLocaleString()}
@@ -162,7 +162,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
                 <div className="flex items-center gap-2 text-xs text-neutral-300 mb-1">
                   <TrendingUp size={14} className="text-amber-400" />
-                  Platform Revenue (10%)
+                  Platform Fees (10%)
                 </div>
                 <p className="text-2xl font-black text-amber-400 font-mono">
                   GH₵ {(opStats.escrow.platform_fees || 0).toLocaleString()}

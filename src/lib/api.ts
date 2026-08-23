@@ -259,8 +259,13 @@ export async function adminGet<T>(path: string): Promise<T> {
       if (response.ok) {
         return (json?.data ?? json) as T;
       }
-    } catch (_) {
-      // Fallback to direct Supabase query
+      const errorMsg = json?.error?.message || json?.message || (typeof json?.error === 'string' ? json.error : null) || `HTTP ${response.status}: Request failed`;
+      throw new Error(errorMsg);
+    } catch (err: any) {
+      if (err instanceof Error && !err.name.includes('AbortError') && !err.message.includes('fetch') && !err.message.includes('NetworkError')) {
+        throw err;
+      }
+      // Fallback to direct Supabase query on network failure
     }
   }
 
@@ -302,8 +307,13 @@ export async function adminRequest<T>(
       if (response.ok) {
         return (json?.data ?? json) as T;
       }
-    } catch (_) {
-      // Fallback to direct Supabase request
+      const errorMsg = json?.error?.message || json?.message || (typeof json?.error === 'string' ? json.error : null) || `HTTP ${response.status}: Request failed`;
+      throw new Error(errorMsg);
+    } catch (err: any) {
+      if (err instanceof Error && !err.name.includes('AbortError') && !err.message.includes('fetch') && !err.message.includes('NetworkError')) {
+        throw err;
+      }
+      // Fallback to direct Supabase request on network failure
     }
   }
 

@@ -109,10 +109,17 @@ export function ApplicationDetail({ application: initialApplication, application
     fetchData();
   }, [fetchData]);
 
-  // Realtime subscription — live status updates
+  // Honest background polling — auto-refreshes data when window is active
   useEffect(() => {
-    if (targetId) setRealtimeConnected(true);
-  }, [targetId]);
+    if (!targetId) return;
+    setRealtimeConnected(true);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [targetId, fetchData]);
 
   const handleAction = async () => {
     if (modal === 'reject' && !modalData.reason) return;
@@ -227,7 +234,7 @@ export function ApplicationDetail({ application: initialApplication, application
                 ? 'bg-success-light border-success/20 text-success-dark'
                 : 'bg-neutral-100 border-neutral-200 text-text-muted'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${realtimeConnected ? 'bg-success animate-pulse' : 'bg-neutral-300'}`} />
-              {realtimeConnected ? 'Live' : 'Connecting...'}
+              {realtimeConnected ? 'Auto-refreshing' : 'Connecting...'}
             </div>
             {justUpdated && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-50 border border-primary/20 text-primary animate-fade-in">
