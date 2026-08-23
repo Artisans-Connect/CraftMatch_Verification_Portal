@@ -28,10 +28,12 @@ export function PaymentGateway() {
   const [countdown, setCountdown] = useState(3);
   const [simulating, setSimulating] = useState(false);
   const [platform, setPlatform] = useState<string | null>(null);
-  const isSandbox = window.location.pathname.includes('/sandbox') || 
-                    window.location.hash.includes('/sandbox') || 
-                    window.location.search.includes('sandbox=true') || 
-                    window.location.search.includes('sessionId=') && window.location.pathname.includes('/sandbox');
+  const isSandbox = (
+    window.location.pathname.includes('/sandbox') || 
+    window.location.hash.includes('/sandbox') || 
+    window.location.search.includes('sandbox=true') || 
+    (window.location.search.includes('sessionId=') && window.location.pathname.includes('/sandbox'))
+  );
 
   useEffect(() => {
     // Session ID and reference can arrive via path query or hash query
