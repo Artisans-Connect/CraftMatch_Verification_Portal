@@ -1,4 +1,4 @@
-import { useCallback, useState, DragEvent } from 'react';
+import { useCallback, useState, useRef, DragEvent } from 'react';
 import { Upload, X, FileText, Image, CheckCircle } from 'lucide-react';
 
 interface FileUploadProps {
@@ -22,7 +22,7 @@ export function FileUpload({
   required = false,
   hint,
 }: FileUploadProps) {
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

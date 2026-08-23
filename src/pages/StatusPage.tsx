@@ -36,8 +36,8 @@ export function StatusPage({ onNavigate }: StatusPageProps) {
     setRealtimeConnected(true);
     const interval = setInterval(async () => {
       if (document.visibilityState === 'visible') {
-        const appNum = searchAppNum || application.application_number;
-        const phone = searchPhone || application.phone_number;
+        const appNum = applicationNumber || application.application_number;
+        const phone = phoneNumber || application.phone_number;
         try {
           const fresh = await fetchApplication(appNum, phone);
           if (fresh) {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Info, HelpCircle, Mail, Shield, AlertTriangle, FileText,
   HeartHandshake, XCircle, Send, ChevronDown, Search, CheckCircle, UploadCloud
@@ -45,14 +45,14 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
   // FAQ Search States
   const [faqSearch, setFaqSearch] = useState('');
   const [faqCategory, setFaqCategory] = useState<'all' | 'general' | 'client' | 'artisan'>('all');
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   // Sync scroll to top on tab change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentTab]);
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +61,7 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
       const result = await apiPost<{ ticket_number: string }>('/public/reports', {
         reporter_name: contactForm.name,
         reporter_email: contactForm.email,
-        category: contactForm.topic || 'GENERAL_SUPPORT',
+        category: contactForm.subject || 'GENERAL_SUPPORT',
         description: contactForm.message,
         details: `Subject: ${contactForm.subject}\n\n${contactForm.message}`,
       });
@@ -307,13 +307,13 @@ export function SupportHub({ activeTab, onNavigate }: SupportHubProps) {
 
                 {/* FAQ List */}
                 <div className="divide-y divide-neutral-100 mt-4 border border-neutral-100 rounded-xl overflow-hidden bg-white">
-                  {filteredFaqs.map((faq, i) => {
-                    const isExpanded = expandedFaq === i;
+                  {filteredFaqs.map((faq) => {
+                    const isExpanded = expandedFaq === faq.q;
                     return (
-                      <div key={i} className="hover:bg-neutral-50/50 transition-colors">
+                      <div key={faq.q} className="hover:bg-neutral-50/50 transition-colors">
                         <button
                           type="button"
-                          onClick={() => setExpandedFaq(isExpanded ? null : i)}
+                          onClick={() => setExpandedFaq(isExpanded ? null : faq.q)}
                           className="w-full text-left p-4 font-bold text-text-primary text-sm flex items-center justify-between gap-4"
                         >
                           <span>{faq.q}</span>

@@ -100,7 +100,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const total = applications.length;
   const approvalRate = total > 0 ? Math.round((statusBreakdown['approved'] || 0) / total * 100) : 0;
 
-  const recentApplications = applications.slice(0, 8);
+  const recentApplications = [...applications]
+    .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+    .slice(0, 8);
 
   const statCards = [
     { label: 'Pending Reviews', value: stats.pending, icon: Clock, color: 'text-gold-600', bg: 'bg-gold-50', border: 'border-gold-100' },
