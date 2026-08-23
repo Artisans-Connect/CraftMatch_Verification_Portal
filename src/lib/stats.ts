@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { apiGet } from './api';
 
 export interface PortalStats {
   totalVerified: number;
@@ -8,35 +8,12 @@ export interface PortalStats {
 }
 
 export async function fetchPortalStats(): Promise<PortalStats> {
-  const { data, error } = await supabase
-    .from('worker_verifications')
-    .select('status, current_region, submitted_at, reviewed_at');
-
-  if (error || !data || data.length === 0) {
+  try {
+    const data = await apiGet<PortalStats>('/verification/stats');
+    return data;
+  } catch (_) {
     return { totalVerified: 0, approvalRate: 0, avgReviewHours: 0, regionsCount: 0 };
   }
-
-  const approved = data.filter(d => d.status === 'approved').length;
-  const finalized = data.filter(d => d.status === 'approved' || d.status === 'rejected').length;
-  const approvalRate = finalized > 0 ? Math.round((approved / finalized) * 100) : 0;
-
-  const regions = new Set(data.map(d => d.current_region).filter(Boolean)).size;
-
-  const reviewed = data.filter(d => d.reviewed_at && d.submitted_at);
-  let avgReviewHours = 0;
-  if (reviewed.length > 0) {
-    const totalMs = reviewed.reduce((acc, d) => {
-      return acc + (new Date(d.reviewed_at).getTime() - new Date(d.submitted_at).getTime());
-    }, 0);
-    avgReviewHours = Math.round(totalMs / reviewed.length / (1000 * 60 * 60));
-  }
-
-  return {
-    totalVerified: approved,
-    approvalRate,
-    avgReviewHours,
-    regionsCount: regions,
-  };
 }
 
 function formatHours(h: number): string {

@@ -45,11 +45,17 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
   const [verifiedCount, setVerifiedCount] = useState(0);
 
   useEffect(() => {
-    fetchPortalStats().then((raw) => {
-      setStats(formatPortalStats(raw));
-      setVerifiedCount(raw.totalVerified);
-      setStatsLoading(false);
-    });
+    fetchPortalStats()
+      .then((raw) => {
+        setStats(formatPortalStats(raw));
+        setVerifiedCount(raw.totalVerified);
+      })
+      .catch(() => {
+        setStats(formatPortalStats({ totalVerified: 0, approvalRate: 0, avgReviewHours: 0, regionsCount: 0 }));
+      })
+      .finally(() => {
+        setStatsLoading(false);
+      });
   }, []);
 
   return (
