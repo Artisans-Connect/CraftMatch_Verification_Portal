@@ -325,8 +325,14 @@ export function PaymentGateway() {
                 </a>
                 <button
                   onClick={() => {
-                    window.open('', '_self');
                     window.close();
+                    const win = window.open('', '_self');
+                    if (win) {
+                      win.close();
+                    }
+                    setTimeout(() => {
+                      alert("Browser security prevented closing this tab automatically. Please close it manually, or click the Return button above.");
+                    }, 300);
                   }}
                   className="w-full bg-text-primary text-white py-3.5 rounded-xl font-semibold hover:bg-text-secondary transition"
                 >
