@@ -342,3 +342,36 @@ export interface BuildStatusResponse {
   message?: string;
 }
 
+export interface StorageStatsResponse {
+  appReleases: {
+    bucket: string;
+    totalFiles: number;
+    totalSizeBytes: number;
+    totalSizeMB: string;
+    files: Array<{ name: string; sizeMB: string; updatedAt: string; url: string }>;
+    publicUrl: string;
+  };
+  verificationDocs: {
+    bucket: string;
+    registeredDocsCount: number;
+  };
+}
+
+export interface StorageCleanupResponse {
+  cleanupDetails: {
+    releases?: {
+      totalFound: number;
+      prunedCount: number;
+      retained: string[];
+      pruned: string[];
+    };
+    orphans?: {
+      scannedFiles: number;
+      orphanedCount: number;
+      deletedFiles: string[];
+      reclaimedBytes: number;
+    };
+  };
+  currentStats: StorageStatsResponse;
+}
+

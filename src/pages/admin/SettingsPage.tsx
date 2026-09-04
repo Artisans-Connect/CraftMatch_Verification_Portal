@@ -28,6 +28,9 @@ import {
   Play,
   Layers,
   CloudLightning,
+  Database,
+  Trash2,
+  HardDrive,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { adminGet, adminPatch, adminPost, adminPut, adminPostMultipart } from '../../lib/api';
@@ -38,6 +41,8 @@ import type {
   AppReleaseResponse,
   AppReleaseLink,
   BuildStatusResponse,
+  StorageStatsResponse,
+  StorageCleanupResponse,
 } from '../../types';
 
 interface SettingsPageProps {
@@ -129,6 +134,15 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const [isSavingManifest, setIsSavingManifest] = useState(false);
   const [editableLinks, setEditableLinks] = useState<AppReleaseLink[]>([]);
 
+  // Supabase Storage & Retention state
+  const [storageStats, setStorageStats] = useState<StorageStatsResponse | null>(null);
+  const [storageStatsLoading, setStorageStatsLoading] = useState(false);
+  const [isCleaningStorage, setIsCleaningStorage] = useState(false);
+  const [cleanupModalOpen, setCleanupModalOpen] = useState(false);
+  const [pruneReleasesOption, setPruneReleasesOption] = useState(true);
+  const [pruneOrphansOption, setPruneOrphansOption] = useState(true);
+  const [keepVersionsCount, setKeepVersionsCount] = useState(3);
+
   const templates = [
     {
       name: '📢 Maintenance Notice',
@@ -207,6 +221,9 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   useEffect(() => {
     if (activeTab === 'blocked') {
       loadBlockedAndReportedData();
+    } else if (activeTab === 'releases') {
+      loadReleaseManifest();
+      loadStorageStats();
     }
   }, [activeTab]);
 
@@ -427,14 +444,48 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
         formData.append('version', uploadVersionInput.trim());
       }
       await adminPostMultipart('/releases/upload', formData);
-      showToast(`APK ${uploadApkFile.name} uploaded and published successfully!`);
+      showToast(`APK ${uploadApkFile.name} uploaded and published to Supabase Cloud Storage!`);
       setUploadApkFile(null);
       setUploadVersionInput('');
       loadReleaseManifest();
+      loadStorageStats();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload APK.');
     } finally {
       setIsUploadingApk(false);
+    }
+  };
+
+  const loadStorageStats = async () => {
+    setStorageStatsLoading(true);
+    try {
+      const data = await adminGet<StorageStatsResponse>('/releases/storage/stats');
+      setStorageStats(data);
+    } catch (err) {
+      console.warn('Could not load storage stats:', err);
+    } finally {
+      setStorageStatsLoading(false);
+    }
+  };
+
+  const handleStorageCleanup = async () => {
+    setIsCleaningStorage(true);
+    setError(null);
+    try {
+      const res = await adminPost<StorageCleanupResponse>('/releases/storage/cleanup', {
+        pruneReleases: pruneReleasesOption,
+        pruneOrphans: pruneOrphansOption,
+        keepVersionsCount,
+      });
+      setStorageStats(res.currentStats);
+      setCleanupModalOpen(false);
+      const relCount = res.cleanupDetails?.releases?.prunedCount ?? 0;
+      const orphCount = res.cleanupDetails?.orphans?.orphanedCount ?? 0;
+      showToast(`Storage retention cleanup complete! Pruned ${relCount} old APK(s) and ${orphCount} orphaned doc(s).`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Storage cleanup failed.');
+    } finally {
+      setIsCleaningStorage(false);
     }
   };
 
@@ -1598,12 +1649,115 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
                           </>
                         ) : (
                           <>
-                            <UploadCloud size={14} /> Upload & Publish APK
+                            <UploadCloud size={14} /> Upload & Publish to Cloud
                           </>
                         )}
                       </button>
                     </div>
                   </div>
+                  <p className="text-[10px] text-neutral-400 italic">
+                    Binary is streamed directly to Supabase Storage (<code className="text-emerald-700">app-releases</code>) and preserved across server restarts.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Supabase Storage & Retention Management Panel */}
+            <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <Database size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-text-primary text-base flex items-center gap-2">
+                      Supabase Cloud Storage & Retention
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                        Active Bucket: {storageStats?.appReleases.bucket || 'app-releases'}
+                      </span>
+                    </h4>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Production CDN hosting for Android APK downloads with automated version pruning to respect storage quotas.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={loadStorageStats}
+                    className="p-2 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary transition-colors"
+                    title="Refresh storage statistics"
+                  >
+                    <RefreshCw size={14} className={storageStatsLoading ? 'animate-spin text-primary' : ''} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCleanupModalOpen(true)}
+                    className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold rounded-xl border border-red-200 flex items-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Run Storage Retention Cleanup
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-100 space-y-1">
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Stored APK Builds</span>
+                  <p className="text-xl font-extrabold text-neutral-900">
+                    {storageStats?.appReleases.totalFiles ?? '—'}
+                  </p>
+                  <p className="text-[11px] text-neutral-400">Total binaries in 'app-releases'</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-100 space-y-1">
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">APK Storage Footprint</span>
+                  <p className="text-xl font-extrabold text-emerald-600">
+                    {storageStats?.appReleases.totalSizeMB ?? '—'}
+                  </p>
+                  <p className="text-[11px] text-neutral-400">Releases quota utilization</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-100 space-y-1">
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Verification Docs</span>
+                  <p className="text-xl font-extrabold text-primary">
+                    {storageStats?.verificationDocs.registeredDocsCount ?? '—'}
+                  </p>
+                  <p className="text-[11px] text-neutral-400">Registered artisan ID & proof docs</p>
+                </div>
+              </div>
+
+              {/* Live Public Supabase CDN URL display */}
+              <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <HardDrive size={13} className="text-emerald-600" />
+                    Direct Supabase Storage CDN Download Link (Permanent)
+                  </p>
+                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Public Read Active
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={storageStats?.appReleases.publicUrl || 'https://qdeznjpvkhrxesjykovi.supabase.co/storage/v1/object/public/app-releases/CraftMatch-latest.apk'}
+                    className="flex-1 bg-white border border-neutral-200 px-3 py-1.5 rounded-lg text-xs font-mono text-neutral-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const link = storageStats?.appReleases.publicUrl || 'https://qdeznjpvkhrxesjykovi.supabase.co/storage/v1/object/public/app-releases/CraftMatch-latest.apk';
+                      navigator.clipboard.writeText(link);
+                      showToast('Public Supabase CDN download link copied to clipboard!');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-colors"
+                  >
+                    Copy CDN Link
+                  </button>
                 </div>
               </div>
             </div>
@@ -1808,6 +1962,98 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
           </div>
         )}
 
+        {/* MODAL: SUPABASE STORAGE CLEANUP */}
+        {cleanupModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-neutral-100">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <h3 className="font-bold text-base text-neutral-900 flex items-center gap-2">
+                  <Trash2 size={20} className="text-red-600" />
+                  Storage Retention & Quota Cleanup
+                </h3>
+                <button
+                  onClick={() => setCleanupModalOpen(false)}
+                  className="text-neutral-400 hover:text-neutral-600 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                Pruning obsolete release binaries and unlinked verification uploads frees up valuable storage quota in Supabase and keeps CDN operations performant.
+              </p>
+
+              <div className="space-y-3 bg-neutral-50 p-4 rounded-xl border border-neutral-200 text-xs">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={pruneReleasesOption}
+                    onChange={(e) => setPruneReleasesOption(e.target.checked)}
+                    className="mt-0.5 rounded border-neutral-300 text-primary focus:ring-primary/20"
+                  />
+                  <div>
+                    <span className="font-bold text-neutral-900 block">Prune Old APK Releases</span>
+                    <span className="text-[11px] text-neutral-500">
+                      Keeps the active <code className="font-bold">CraftMatch-latest.apk</code> plus the newest{' '}
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={keepVersionsCount}
+                        onChange={(e) => setKeepVersionsCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-12 px-1.5 py-0.5 border border-neutral-300 rounded text-center font-bold inline-block mx-1"
+                      />{' '}
+                      versioned builds.
+                    </span>
+                  </div>
+                </label>
+
+                <div className="border-t border-neutral-200/60 pt-3">
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={pruneOrphansOption}
+                      onChange={(e) => setPruneOrphansOption(e.target.checked)}
+                      className="mt-0.5 rounded border-neutral-300 text-primary focus:ring-primary/20"
+                    />
+                    <div>
+                      <span className="font-bold text-neutral-900 block">Clean Orphan Verification Documents</span>
+                      <span className="text-[11px] text-neutral-500">
+                        Scans <code className="font-bold">verification-docs</code> for unlinked files from abandoned applications and deletes them.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCleanupModalOpen(false)}
+                  className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isCleaningStorage || (!pruneReleasesOption && !pruneOrphansOption)}
+                  onClick={handleStorageCleanup}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-1.5 transition-all"
+                >
+                  {isCleaningStorage ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Pruning Cloud Storage...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Execute Storage Cleanup
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODAL: ISSUE OFFICIAL WARNING */}
         {warnModalOpen && warnTarget && (

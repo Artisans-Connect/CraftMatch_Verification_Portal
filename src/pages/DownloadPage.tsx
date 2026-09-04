@@ -27,17 +27,19 @@ interface DownloadPageProps {
 
 const apiBaseUrl = import.meta.env.VITE_EXPRESS_API_BASE_URL || import.meta.env.EXPRESS_API_BASE_URL || '';
 
+const SUPABASE_APP_RELEASES_CDN = 'https://qdeznjpvkhrxesjykovi.supabase.co/storage/v1/object/public/app-releases/CraftMatch-latest.apk';
+
 const fallbackRelease: AppReleaseResponse = {
   appName: 'CraftMatch',
-  latestVersion: '1.0.0',
+  latestVersion: '1.0.1',
   updatedAt: new Date().toISOString(),
   releaseNotes: 'Official CraftMatch app with verified artisan matching and status tracking.',
   links: [
     {
       platform: 'android',
       label: 'Android APK',
-      href: '/api/releases/download/android',
-      version: '1.0.0',
+      href: SUPABASE_APP_RELEASES_CDN,
+      version: '1.0.1',
       fileSize: '~38.5 MB',
       minRequirement: 'Android 8.0 or newer',
       available: true,
@@ -175,7 +177,10 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
 
   // Compute full direct download URL for Android APK
   const resolvedAndroidDownloadUrl = useMemo(() => {
-    if (!androidLink?.href) return '';
+    if (!androidLink?.href) return SUPABASE_APP_RELEASES_CDN;
+    if (androidLink.href.includes('github.com/Artisans-Connect')) {
+      return SUPABASE_APP_RELEASES_CDN;
+    }
     if (androidLink.href.startsWith('http')) return androidLink.href;
     const base = apiBaseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
     return `${base}${androidLink.href.startsWith('/') ? '' : '/'}${androidLink.href}`;
