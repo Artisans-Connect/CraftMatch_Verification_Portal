@@ -126,6 +126,7 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const [buildTypeInput, setBuildTypeInput] = useState<'release' | 'debug'>('release');
   const [isTriggeringBuild, setIsTriggeringBuild] = useState(false);
   const [isPollingBuild, setIsPollingBuild] = useState(false);
+  const [githubTokenInput, setGithubTokenInput] = useState('');
 
   // Direct APK Upload state
   const [uploadApkFile, setUploadApkFile] = useState<File | null>(null);
@@ -418,11 +419,16 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
         version: buildVersionInput.trim() || '1.0.0',
         releaseNotes: buildNotesInput.trim(),
         releaseType: buildTypeInput,
+        githubToken: githubTokenInput.trim() || undefined,
       });
-      showToast(res.message || 'Build dispatched to GitHub Actions runner!');
-      setBuildModalOpen(false);
-      await checkBuildStatus();
-      setIsPollingBuild(true);
+      if (res.success) {
+        showToast(res.message || 'Build dispatched to GitHub Actions runner!');
+        setBuildModalOpen(false);
+        await checkBuildStatus();
+        setIsPollingBuild(true);
+      } else {
+        setError(res.message || 'GitHub token required on server or input field.');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to dispatch cloud build.');
     } finally {
@@ -1878,7 +1884,7 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
               </div>
 
               <p className="text-xs text-neutral-600 leading-relaxed">
-                This will trigger the <strong className="text-neutral-900">build-android-release.yml</strong> runner on GitHub Actions to compile the Flutter Android APK and publish release assets.
+                With 1-click, GitHub Actions compiles the Flutter Android APK in the cloud, pushes the binary directly to the Supabase Storage bucket (<code className="font-semibold text-primary">app-releases</code>), updates the download manifest, and makes it immediately available on the public Download page.
               </p>
 
               <div className="space-y-3">
@@ -1924,12 +1930,38 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
                 <div>
                   <label className="text-xs font-bold text-neutral-700 block mb-1">Release Notes & Changelog</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={buildNotesInput}
                     onChange={(e) => setBuildNotesInput(e.target.value)}
                     placeholder="Describe new features or bugfixes included in this build..."
                     className="w-full p-3 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                   />
+                </div>
+
+                <div className="border-t border-neutral-100 pt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-neutral-700">
+                      GitHub Personal Access Token <span className="text-neutral-400 font-normal">(Optional)</span>
+                    </label>
+                    <a
+                      href="https://github.com/Artisans-Connect/artisansApp_frontend/actions/workflows/build-android-release.yml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      Open GitHub Actions <ExternalLink size={12} />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={githubTokenInput}
+                    onChange={(e) => setGithubTokenInput(e.target.value)}
+                    placeholder="ghp_... (or set GITHUB_RELEASE_PAT in backend .env)"
+                    className="w-full p-2.5 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  <p className="text-[10px] text-neutral-400 mt-1">
+                    Required only if GITHUB_RELEASE_PAT is not yet configured in server environment.
+                  </p>
                 </div>
               </div>
 
