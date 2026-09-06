@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface QrCodeSvgProps {
   value: string;
@@ -9,7 +9,8 @@ interface QrCodeSvgProps {
 
 /**
  * QR Code Display Component
- * Renders an SVG QR code image for mobile camera scanning via API.
+ * Renders a high-resolution QR code image for mobile camera scanning.
+ * Uses PNG format for universal camera app & browser compatibility with automatic fallback.
  */
 export const QrCodeSvg: React.FC<QrCodeSvgProps> = ({
   value,
@@ -17,8 +18,16 @@ export const QrCodeSvg: React.FC<QrCodeSvgProps> = ({
   className = '',
   includeMargin = true,
 }) => {
+  const [useFallback, setUseFallback] = useState(false);
   const encodedValue = encodeURIComponent(value);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedValue}&margin=1&format=svg`;
+
+  // Primary: QRServer (PNG format - 100% camera app & device compatible)
+  const primaryQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedValue}&margin=1&format=png`;
+
+  // Fallback: QuickChart QR API
+  const fallbackQrUrl = `https://quickchart.io/qr?text=${encodedValue}&size=${size}&margin=1`;
+
+  const qrUrl = useFallback ? fallbackQrUrl : primaryQrUrl;
 
   return (
     <div
@@ -30,11 +39,12 @@ export const QrCodeSvg: React.FC<QrCodeSvgProps> = ({
         alt="Scan QR code to download CraftMatch APK"
         width={size}
         height={size}
-        className="rounded-xl"
-        loading="lazy"
-        onError={(e) => {
-          const target = e.currentTarget;
-          target.style.display = 'none';
+        className="rounded-xl object-contain"
+        loading="eager"
+        onError={() => {
+          if (!useFallback) {
+            setUseFallback(true);
+          }
         }}
       />
     </div>
