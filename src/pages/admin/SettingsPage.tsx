@@ -124,6 +124,7 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const [buildVersionInput, setBuildVersionInput] = useState('1.0.0');
   const [buildNotesInput, setBuildNotesInput] = useState('CraftMatch Android Release');
   const [buildTypeInput, setBuildTypeInput] = useState<'release' | 'debug'>('release');
+  const [buildBranchInput, setBuildBranchInput] = useState('feature/fcm-whatsapp-sms-fallback');
   const [isTriggeringBuild, setIsTriggeringBuild] = useState(false);
   const [isPollingBuild, setIsPollingBuild] = useState(false);
   const [githubTokenInput, setGithubTokenInput] = useState('');
@@ -419,6 +420,7 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
         version: buildVersionInput.trim() || '1.0.0',
         releaseNotes: buildNotesInput.trim(),
         releaseType: buildTypeInput,
+        branch: buildBranchInput.trim() || 'main',
         githubToken: githubTokenInput.trim() || undefined,
       });
       if (res.success) {
@@ -1888,6 +1890,20 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
               </p>
 
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Target Git Branch</label>
+                  <input
+                    type="text"
+                    value={buildBranchInput}
+                    onChange={(e) => setBuildBranchInput(e.target.value)}
+                    placeholder="e.g. feature/fcm-whatsapp-sms-fallback or main"
+                    className="w-full p-3 text-xs font-mono border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-neutral-50/50"
+                  />
+                  <p className="text-[10px] text-neutral-400 mt-1">
+                    GitHub Actions will checkout and build from this exact branch (e.g. <code className="text-neutral-700 font-bold">feature/fcm-whatsapp-sms-fallback</code>).
+                  </p>
+                </div>
+
                 <div>
                   <label className="text-xs font-bold text-neutral-700 block mb-1">Release Version Tag</label>
                   <input
