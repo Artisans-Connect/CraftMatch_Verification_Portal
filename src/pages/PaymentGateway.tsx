@@ -177,23 +177,18 @@ export function PaymentGateway() {
       return;
     }
 
-    // No valid Paystack URL — request one from the backend
-    if (!sessionId) {
-      setError('Payment URL is missing. Please contact support.');
+    // Moolre sends a mobile-money prompt during session initialization.
+    // Re-check the reference here instead of creating a Paystack checkout URL.
+    if (!reference) {
+      setError('Payment reference is missing. Please contact support.');
       return;
     }
 
     setPaying(true);
     try {
-      const result = await apiPost<{ authorization_url: string }>(
-        `/payments/checkout-session/${sessionId}/initialize-paystack`,
-        { platform }
-      );
-      if (result.authorization_url) {
-        window.location.href = result.authorization_url;
-      } else {
-        setError('Could not get payment URL. Please try again.');
-      }
+      const result = await apiGet<{ success: boolean; message?: string }>(`/payments/verify/${encodeURIComponent(reference)}`);
+      if (result?.success) setPayment((prev) => prev ? { ...prev, status: 'completed' } : null);
+      else setError('Payment is still pending. Approve the prompt on your phone, then try again.');
     } catch (err: any) {
       setError(err.message || 'Failed to initialize payment. Please try again.');
       setPaying(false);
