@@ -47,7 +47,7 @@ import type {
 
 interface SettingsPageProps {
   onNavigate: (page: string, data?: unknown) => void;
-  initialTab?: 'broadcast' | 'blocked' | 'general' | 'releases';
+  initialTab?: 'broadcast' | 'sms' | 'blocked' | 'general' | 'releases';
 }
 
 function workerFrom(account: any) {
@@ -80,7 +80,7 @@ function formatDate(isoStr: string | null | undefined) {
 }
 
 export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsPageProps) {
-  const [activeTab, setActiveTab] = useState<'broadcast' | 'blocked' | 'general' | 'releases'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'broadcast' | 'sms' | 'blocked' | 'general' | 'releases'>(initialTab);
   const [blockedAccounts, setBlockedAccounts] = useState<AdminAccount[]>([]);
   const [userReports, setUserReports] = useState<AdminReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +103,15 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastConfirmModal, setBroadcastConfirmModal] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState<{ count: number; target: string; title: string } | null>(null);
+
+  // SMS Broadcast state
+  const [smsTarget, setSmsTarget] = useState<'all' | 'workers' | 'clients' | 'phone'>('all');
+  const [smsRecipientPhone, setSmsRecipientPhone] = useState('');
+  const [smsTitle, setSmsTitle] = useState('CraftMatch');
+  const [smsMessage, setSmsMessage] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsConfirmModal, setSmsConfirmModal] = useState(false);
+  const [smsResult, setSmsResult] = useState<{ count: number; totalTargeted?: number; failedCount?: number; target: string; message: string } | null>(null);
 
   // Selected report detail modal state
   const [inspectedReport, setInspectedReport] = useState<AdminReport | null>(null);
@@ -192,6 +201,61 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
       setError(err instanceof Error ? err.message : 'Failed to send broadcast notification.');
     } finally {
       setIsBroadcasting(false);
+    }
+  };
+
+  const smsTemplates = [
+    {
+      name: '🚀 App Download Direct Link',
+      title: 'CraftMatch',
+      message: 'Download the official CraftMatch Android APK directly from: https://craft-match-verification-portal.vercel.app/#/download',
+      target: 'all' as const,
+    },
+    {
+      name: '🛡️ Ghana Card Prompt',
+      title: 'CraftMatch Alert',
+      message: 'Complete your Ghana Card identity verification to receive high-value client job dispatches in Kumasi.',
+      target: 'workers' as const,
+    },
+    {
+      name: '💳 Escrow Protection',
+      title: 'CraftMatch Security',
+      message: 'Notice: Always pay via CraftMatch secure escrow to qualify for job guarantees and payment protection.',
+      target: 'clients' as const,
+    },
+    {
+      name: '📢 System Maintenance',
+      title: 'CraftMatch Notice',
+      message: 'System Alert: CraftMatch platform services will undergo scheduled maintenance tonight at 11:00 PM (30 mins).',
+      target: 'all' as const,
+    },
+  ];
+
+  const handleSendSmsBroadcast = async () => {
+    if (!smsMessage.trim()) {
+      setError('SMS message content is required.');
+      return;
+    }
+    if (smsTarget === 'phone' && !smsRecipientPhone.trim()) {
+      setError('Recipient phone number is required when sending to a specific number.');
+      return;
+    }
+    setIsSendingSms(true);
+    setError(null);
+    try {
+      const res = await adminPost<{ count: number; totalTargeted?: number; failedCount?: number; target: string; message: string }>('/admin/broadcast-sms', {
+        target: smsTarget,
+        recipientPhone: smsTarget === 'phone' ? smsRecipientPhone.trim() : undefined,
+        title: smsTitle.trim() || undefined,
+        message: smsMessage.trim(),
+      });
+      setSmsResult(res);
+      setSmsConfirmModal(false);
+      showToast(`SMS sent successfully to ${res.count} recipient(s)!`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send SMS broadcast.');
+    } finally {
+      setIsSendingSms(false);
     }
   };
 
@@ -587,6 +651,17 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
               System Push Broadcaster
             </button>
             <button
+              onClick={() => setActiveTab('sms')}
+              className={`pb-3 px-4 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors ${
+                activeTab === 'sms'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <MessageSquare size={18} />
+              System SMS Dispatcher
+            </button>
+            <button
               onClick={() => setActiveTab('blocked')}
               className={`pb-3 px-4 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors ${
                 activeTab === 'blocked'
@@ -893,6 +968,302 @@ export function SettingsPage({ onNavigate, initialTab = 'broadcast' }: SettingsP
                       className="px-5 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50"
                     >
                       {isBroadcasting ? 'Broadcasting...' : 'Yes, Send Now'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB CONTENT: SYSTEM SMS DISPATCHER */}
+        {activeTab === 'sms' && (
+          <div className="space-y-6">
+            <div className="grid lg:grid-cols-12 gap-6">
+              {/* Left Column: SMS Form & Presets (7 cols) */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm space-y-5">
+                  <div>
+                    <h3 className="font-bold text-text-primary text-base flex items-center gap-2">
+                      <MessageSquare size={18} className="text-primary" />
+                      Compose System SMS Broadcast
+                    </h3>
+                    <p className="text-xs text-text-muted mt-1">
+                      Dispatch direct mobile SMS messages via Moolre API to clients, artisans, or specific phone numbers.
+                    </p>
+                  </div>
+
+                  {/* Target Audience Selector */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                      SMS Recipient Target
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSmsTarget('all')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          smsTarget === 'all'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-primary font-bold'
+                            : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Users size={15} />
+                          <span className="text-xs">All Users</span>
+                        </div>
+                        <p className="text-[10px] text-neutral-400 font-normal">Clients & Artisans</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSmsTarget('workers')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          smsTarget === 'workers'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-primary font-bold'
+                            : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Briefcase size={15} />
+                          <span className="text-xs">Artisans</span>
+                        </div>
+                        <p className="text-[10px] text-neutral-400 font-normal">Registered Workers</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSmsTarget('clients')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          smsTarget === 'clients'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-primary font-bold'
+                            : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <User size={15} />
+                          <span className="text-xs">Clients</span>
+                        </div>
+                        <p className="text-[10px] text-neutral-400 font-normal">Customers only</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSmsTarget('phone')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          smsTarget === 'phone'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-primary font-bold'
+                            : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Smartphone size={15} />
+                          <span className="text-xs">Single Phone</span>
+                        </div>
+                        <p className="text-[10px] text-neutral-400 font-normal">Direct number</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recipient Phone Input (When target === 'phone') */}
+                  {smsTarget === 'phone' && (
+                    <div className="space-y-1 animate-fade-in">
+                      <label className="text-xs font-semibold text-neutral-700">
+                        Target Phone Number (Ghana Format: 024XXXXXXX or 23324XXXXXXX)
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. 0244123456 or +233244123456"
+                        value={smsRecipientPhone}
+                        onChange={(e) => setSmsRecipientPhone(e.target.value)}
+                        className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                      />
+                    </div>
+                  )}
+
+                  {/* 1-Click Ghana SMS Templates */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-amber-500" />
+                        Quick Ghana SMS Templates
+                      </label>
+                      <span className="text-[10px] text-neutral-400">Click to autofill</span>
+                    </div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {smsTemplates.map((tmpl) => (
+                        <button
+                          key={tmpl.name}
+                          type="button"
+                          onClick={() => {
+                            setSmsTitle(tmpl.title);
+                            setSmsMessage(tmpl.message);
+                            setSmsTarget(tmpl.target);
+                          }}
+                          className="px-3 py-1.5 bg-neutral-100 hover:bg-amber-50 hover:border-amber-200 border border-neutral-200 rounded-lg text-xs font-medium text-neutral-700 whitespace-nowrap transition-colors"
+                        >
+                          {tmpl.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* SMS Title & Message Inputs */}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-semibold text-neutral-700">SMS Sender ID / Header</label>
+                        <span className="text-[10px] text-neutral-400">Default: CraftMatch</span>
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={11}
+                        placeholder="CraftMatch"
+                        value={smsTitle}
+                        onChange={(e) => setSmsTitle(e.target.value)}
+                        className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-semibold text-neutral-700">SMS Message Content</label>
+                        <span className="text-[10px] text-neutral-400 font-mono">
+                          {smsMessage.length} chars • {Math.ceil(smsMessage.length / 160) || 1} SMS segment(s)
+                        </span>
+                      </div>
+                      <textarea
+                        rows={4}
+                        placeholder="Type official SMS text for Ghanaian mobile recipients..."
+                        value={smsMessage}
+                        onChange={(e) => setSmsMessage(e.target.value)}
+                        className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSmsTitle('CraftMatch');
+                        setSmsMessage('');
+                        setSmsRecipientPhone('');
+                        setSmsResult(null);
+                      }}
+                      className="px-4 py-2 text-xs text-neutral-500 hover:text-neutral-700 font-medium"
+                    >
+                      Clear Draft
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!smsMessage.trim() || (smsTarget === 'phone' && !smsRecipientPhone.trim()) || isSendingSms}
+                      onClick={() => setSmsConfirmModal(true)}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
+                    >
+                      <Send size={15} />
+                      Send SMS Broadcast
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Live Phone Screen SMS Bubble Preview (5 cols) */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-text-primary text-sm flex items-center gap-2">
+                      <Smartphone size={16} className="text-primary" />
+                      Mobile Phone SMS Preview
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Moolre SMS Gateway
+                    </span>
+                  </div>
+
+                  {/* Phone Shell Container */}
+                  <div className="mx-auto w-full max-w-[280px] bg-neutral-900 rounded-[32px] p-3 shadow-2xl border-4 border-neutral-800">
+                    <div className="bg-neutral-100 rounded-[22px] p-3 space-y-3 min-h-[300px] flex flex-col justify-between text-neutral-900">
+                      {/* Top Bar */}
+                      <div className="text-center pb-2 border-b border-neutral-200">
+                        <p className="text-[10px] font-bold text-neutral-800">{smsTitle.trim() || 'CraftMatch'}</p>
+                        <p className="text-[8px] text-neutral-400">Official SMS Service • MTN / Telecel</p>
+                      </div>
+
+                      {/* SMS Chat Bubble */}
+                      <div className="space-y-2 my-auto">
+                        <div className="bg-white p-3 rounded-2xl shadow-sm border border-neutral-200 text-xs space-y-1">
+                          <p className="text-[10px] font-bold text-primary">{smsTitle.trim() || 'CraftMatch'}:</p>
+                          <p className="text-neutral-800 leading-relaxed text-balance break-words">
+                            {smsMessage.trim() || 'Your broadcast SMS message preview will appear here as mobile recipients see it on their phones.'}
+                          </p>
+                          <div className="text-right">
+                            <span className="text-[8px] text-neutral-400">Just now</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Footer */}
+                      <div className="text-center pt-2 border-t border-neutral-200 text-[9px] text-neutral-400">
+                        Target: <strong className="text-neutral-700 uppercase">{smsTarget === 'phone' ? smsRecipientPhone || 'Single Number' : smsTarget}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SMS Dispatch Confirmation Modal */}
+            {smsConfirmModal && (
+              <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-neutral-100">
+                  <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-2xl border border-amber-200">
+                    <AlertTriangle size={24} className="flex-shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-sm">Confirm SMS Broadcast Dispatch</h4>
+                      <p className="text-xs text-amber-800">Review SMS content and target audience before sending.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-neutral-700 bg-neutral-50 p-4 rounded-2xl border border-neutral-200">
+                    <p>
+                      <strong>Target Group:</strong>{' '}
+                      <span className="uppercase font-bold text-primary">
+                        {smsTarget === 'phone' ? `Single Number (${smsRecipientPhone})` : smsTarget}
+                      </span>
+                    </p>
+                    <p>
+                      <strong>Sender Header:</strong> {smsTitle.trim() || 'CraftMatch'}
+                    </p>
+                    <p>
+                      <strong>Segment Count:</strong> {Math.ceil(smsMessage.length / 160) || 1} SMS per recipient ({smsMessage.length} chars)
+                    </p>
+                    <div className="pt-2 border-t border-neutral-200">
+                      <strong>Message Preview:</strong>
+                      <p className="mt-1 italic text-neutral-600 bg-white p-2 rounded border border-neutral-200">
+                        "{smsTitle.trim() || 'CraftMatch'}: {smsMessage.trim()}"
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSmsConfirmModal(false)}
+                      className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold rounded-xl"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSendingSms}
+                      onClick={handleSendSmsBroadcast}
+                      className="px-5 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isSendingSms ? 'Sending SMS...' : 'Yes, Dispatch SMS'}
                     </button>
                   </div>
                 </div>
